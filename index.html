@@ -1,0 +1,3368 @@
+<!doctype html>
+<html lang="en" class="h-full">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#0B1020" />
+<meta name="description" content="ProofPocket — track product warranties, receipts, invoices and expiry dates. All data stays on your device." />
+<title>ProofPocket — Warranty &amp; Receipt Manager</title>
+
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%238B5CF6'/%3E%3Cpath d='M16 7l7 3v6c0 4.2-2.9 7.6-7 9-4.1-1.4-7-4.8-7-9v-6l7-3z' fill='white'/%3E%3C/svg%3E" />
+
+<script src="https://cdn.tailwindcss.com"></script>
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          bg:       '#0B1020',
+          card:     '#11182B',
+          surface:  '#171F35',
+          primary:  '#8B5CF6',
+          secondary:'#6366F1',
+          ink:      '#F8FAFC',
+          muted:    '#94A3B8',
+          success:  '#22C55E',
+          warning:  '#F59E0B',
+          danger:   '#EF4444'
+        },
+        fontFamily: {
+          sans: ['Inter', 'ui-sans-serif', 'system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'sans-serif']
+        }
+      }
+    }
+  };
+</script>
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+
+<style type="text/tailwindcss">
+  @layer components {
+    .card      { @apply rounded-2xl border border-white/5 bg-card; }
+    .input     { @apply w-full rounded-xl bg-surface border border-white/10 px-3.5 py-2.5 text-sm text-ink placeholder:text-muted/60 transition focus:outline-none focus:border-primary/60 focus:ring-2 focus:ring-primary/25; }
+    .label     { @apply block text-xs font-medium text-muted mb-1.5; }
+    .chip      { @apply inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold whitespace-nowrap; }
+    .nav-item  { @apply flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-muted transition-colors hover:bg-white/5 hover:text-ink; }
+    .nav-item.is-active { @apply bg-primary/15 text-ink; }
+    .btn       { @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/70 focus-visible:ring-offset-2 focus-visible:ring-offset-bg disabled:opacity-50 disabled:cursor-not-allowed select-none; }
+    .btn-primary { @apply btn text-white shadow-lg shadow-primary/20; background-image: linear-gradient(135deg,#8B5CF6 0%,#6366F1 100%); }
+    .btn-primary:hover { filter: brightness(1.08); }
+    .btn-ghost   { @apply btn bg-white/5 text-ink border border-white/10 hover:bg-white/10; }
+    .btn-danger  { @apply btn bg-danger/15 text-danger border border-danger/25 hover:bg-danger/25; }
+    .btn-sm      { @apply px-3 py-1.5 text-xs rounded-lg; }
+    .icon-btn    { @apply grid h-8 w-8 shrink-0 place-items-center rounded-lg text-muted transition hover:bg-white/10 hover:text-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/60; }
+    .icon-btn-danger { @apply hover:bg-danger/15 hover:text-danger; }
+  }
+</style>
+
+<style>
+  :root { color-scheme: dark; }
+  html, body { background-color: #0B1020; }
+  body {
+    font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+    -webkit-tap-highlight-color: transparent;
+    overflow-x: hidden;
+  }
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-track { background: #0B1020; }
+  ::-webkit-scrollbar-thumb { background: #1f2a44; border-radius: 999px; }
+  ::-webkit-scrollbar-thumb:hover { background: #2b3a5e; }
+
+  .fade-in { animation: ppFade .26s ease both; }
+  @keyframes ppFade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+  .modal-panel { animation: ppModal .22s cubic-bezier(.2,.8,.2,1) both; }
+  @keyframes ppModal { from { opacity: 0; transform: translateY(14px) scale(.985); } to { opacity: 1; transform: none; } }
+
+  .toast-in { animation: ppToast .22s ease both; }
+  @keyframes ppToast { from { opacity: 0; transform: translateY(10px) scale(.97); } to { opacity: 1; transform: none; } }
+
+  .skeleton { background: linear-gradient(90deg, #171F35 25%, #1e2843 37%, #171F35 63%); background-size: 400% 100%; animation: ppShimmer 1.4s ease infinite; }
+  @keyframes ppShimmer { 0% { background-position: 100% 50%; } 100% { background-position: 0 50%; } }
+
+  input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(.7); cursor: pointer; }
+  input[type="search"]::-webkit-search-cancel-button { -webkit-appearance: none; appearance: none; }
+
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+  /* Collapsible desktop sidebar */
+  @media (min-width: 1024px) {
+    .sidebar-collapsed #sidebar   { width: 5rem; }
+    .sidebar-collapsed #mainWrap  { padding-left: 5rem; }
+    .sidebar-collapsed .nav-label { display: none; }
+    .sidebar-collapsed .nav-item  { justify-content: center; padding-left: 0; padding-right: 0; }
+    .sidebar-collapsed .brand-text { display: none; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; }
+  }
+</style>
+</head>
+
+<body class="min-h-full bg-bg text-ink antialiased">
+
+<!-- ============================= SIDEBAR (desktop) ============================= -->
+<aside id="sidebar"
+       class="fixed inset-y-0 left-0 z-30 hidden w-64 flex-col border-r border-white/5 bg-card/70 backdrop-blur-xl transition-all duration-200 lg:flex">
+  <div class="flex h-16 shrink-0 items-center gap-2.5 border-b border-white/5 px-4">
+    <div class="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-gradient-to-br from-primary to-secondary shadow-lg shadow-primary/25">
+      <i data-lucide="shield-check" class="h-5 w-5 text-white"></i>
+    </div>
+    <div class="brand-text min-w-0">
+      <p class="truncate text-sm font-bold leading-tight">ProofPocket</p>
+      <p class="truncate text-[11px] leading-tight text-muted">Warranty Manager</p>
+    </div>
+  </div>
+
+  <nav class="flex-1 space-y-1 overflow-y-auto p-3" aria-label="Main navigation">
+    <a href="#/dashboard" data-nav="dashboard" class="nav-item" title="Dashboard">
+      <i data-lucide="layout-dashboard" class="h-5 w-5 shrink-0"></i><span class="nav-label">Dashboard</span>
+    </a>
+    <a href="#/products" data-nav="products" class="nav-item" title="Product Library">
+      <i data-lucide="package" class="h-5 w-5 shrink-0"></i><span class="nav-label">Product Library</span>
+    </a>
+    <a href="#/expirations" data-nav="expirations" class="nav-item" title="Expirations">
+      <i data-lucide="bell-ring" class="h-5 w-5 shrink-0"></i><span class="nav-label">Expirations</span>
+    </a>
+    <a href="#/settings" data-nav="settings" class="nav-item" title="Settings">
+      <i data-lucide="settings" class="h-5 w-5 shrink-0"></i><span class="nav-label">Settings</span>
+    </a>
+  </nav>
+
+  <div class="border-t border-white/5 p-3">
+    <button type="button" data-action="toggle-sidebar"
+            class="nav-item w-full" title="Collapse sidebar" aria-label="Collapse sidebar">
+      <i data-lucide="panel-left-close" class="h-5 w-5 shrink-0"></i>
+      <span class="nav-label">Collapse</span>
+    </button>
+  </div>
+</aside>
+
+<!-- ============================= MAIN ============================= -->
+<div id="mainWrap" class="flex-1 pb-20 transition-all duration-200 lg:pb-0 lg:pl-64">
+
+  <!-- View container -->
+  <main id="view" class="mx-auto w-full max-w-7xl px-4 pt-6 pb-2 sm:px-6 lg:px-8"></main>
+
+<!-- Copyright Footer -->
+  <footer class="shrink-0 w-full border-t border-white/5 px-4 py-3 text-center sm:px-6 lg:px-8">
+    <p class="text-xs text-muted">
+      <span>Developed By ~ </span>
+      <span class="font-semibold text-ink">Shankar Prasad Pyke</span>
+    </p>
+  </footer>
+
+</div>
+
+<!-- ============================= BOTTOM NAV (mobile) ============================= -->
+<nav class="fixed inset-x-0 bottom-0 z-30 border-t border-white/5 bg-card/95 backdrop-blur-xl lg:hidden"
+     style="padding-bottom: env(safe-area-inset-bottom);"
+     aria-label="Mobile navigation">
+  <div class="mx-auto grid max-w-md grid-cols-4">
+    <a href="#/dashboard" data-nav="dashboard"
+       class="flex flex-col items-center gap-1 py-2.5 text-[10px] font-medium text-muted transition-colors">
+      <i data-lucide="layout-dashboard" class="h-5 w-5"></i><span>Home</span>
+    </a>
+    <a href="#/products" data-nav="products"
+       class="flex flex-col items-center gap-1 py-2.5 text-[10px] font-medium text-muted transition-colors">
+      <i data-lucide="package" class="h-5 w-5"></i><span>Products</span>
+    </a>
+    <a href="#/expirations" data-nav="expirations"
+       class="flex flex-col items-center gap-1 py-2.5 text-[10px] font-medium text-muted transition-colors">
+      <i data-lucide="bell-ring" class="h-5 w-5"></i><span>Expiring</span>
+    </a>
+    <a href="#/settings" data-nav="settings"
+       class="flex flex-col items-center gap-1 py-2.5 text-[10px] font-medium text-muted transition-colors">
+      <i data-lucide="settings" class="h-5 w-5"></i><span>Settings</span>
+    </a>
+  </div>
+</nav>
+
+<!-- Modal + toast roots -->
+<div id="modalRoot"></div>
+<div id="toastRoot" class="pointer-events-none fixed inset-x-0 bottom-24 z-[60] flex flex-col items-center gap-2 px-4 sm:bottom-6 sm:right-6 sm:left-auto sm:items-end"></div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* =========================================================================
+     CONSTANTS & CONFIG
+     ========================================================================= */
+
+  const LS_PRODUCTS   = 'proofpocket.products.v1';
+  const LS_SETTINGS   = 'proofpocket.settings.v1';
+  const MAX_RECEIPT_BYTES = 1.5 * 1024 * 1024;   // 1.5 MB per attachment
+  const PAGE_SIZE     = 12;
+
+  const CATEGORIES = [
+    { id: 'Electronics',               icon: 'cpu' },
+    { id: 'Appliances',                icon: 'washing-machine' },
+    { id: 'Computers and accessories', icon: 'laptop' },
+    { id: 'Mobile phones',             icon: 'smartphone' },
+    { id: 'Vehicles',                  icon: 'car' },
+    { id: 'Furniture',                 icon: 'sofa' },
+    { id: 'Clothing',                  icon: 'shirt' },
+    { id: 'Other',                     icon: 'package' }
+  ];
+
+  const CURRENCIES = {
+    INR: '₹', USD: '$', EUR: '€', GBP: '£', AED: 'د.إ',
+    AUD: 'A$', CAD: 'C$', SGD: 'S$', JPY: '¥'
+  };
+
+  const STATUS_META = {
+    active:  { label: 'Active',        badge: 'bg-success/15 text-success border border-success/25', bar: 'bg-success' },
+    soon:    { label: 'Expiring Soon', badge: 'bg-warning/15 text-warning border border-warning/25', bar: 'bg-warning' },
+    today:   { label: 'Expires Today', badge: 'bg-warning/20 text-warning border border-warning/35', bar: 'bg-warning' },
+    expired: { label: 'Expired',       badge: 'bg-danger/15 text-danger border border-danger/25',    bar: 'bg-danger'  },
+    none:    { label: 'No Warranty',   badge: 'bg-white/5 text-muted border border-white/10',        bar: 'bg-muted'   }
+  };
+
+  const STATUS_ORDER = ['active', 'soon', 'today', 'expired', 'none'];
+
+  /* Expirations tab ids — kept at module scope so handlers can validate. */
+  const EXPIRY_TABS = [
+    { id: 'upcoming', label: 'All upcoming', icon: 'calendar-clock', field: 'upcoming' },
+    { id: '7',        label: '7 days',       icon: 'alarm-clock',    field: 'week'     },
+    { id: '30',       label: '30 days',      icon: 'clock',          field: 'month'    },
+    { id: '90',       label: '90 days',      icon: 'calendar',       field: 'quarter'  },
+    { id: 'expired',  label: 'Expired',      icon: 'shield-x',       field: 'expired'  }
+  ];
+
+  /* =========================================================================
+     SMALL UTILITIES
+     ========================================================================= */
+
+  function esc(value) {
+    if (value === null || value === undefined) return '';
+    return String(value).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  function uid(prefix) {
+    return (prefix || 'id') + '_' + Date.now().toString(36) + '_' +
+           Math.random().toString(36).slice(2, 9);
+  }
+
+  function clamp(n, min, max) { return Math.min(max, Math.max(min, n)); }
+
+  function parseISODate(str) {
+    if (typeof str !== 'string') return null;
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(str.trim());
+    if (!m) return null;
+    const y = Number(m[1]), mo = Number(m[2]), d = Number(m[3]);
+    const dt = new Date(y, mo - 1, d);
+    if (dt.getFullYear() !== y || dt.getMonth() !== mo - 1 || dt.getDate() !== d) return null;
+    return dt;
+  }
+
+  function toISODate(date) {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return y + '-' + m + '-' + d;
+  }
+
+  function todayLocal() {
+    const n = new Date();
+    return new Date(n.getFullYear(), n.getMonth(), n.getDate());
+  }
+
+  function daysBetween(a, b) {
+    const ua = Date.UTC(a.getFullYear(), a.getMonth(), a.getDate());
+    const ub = Date.UTC(b.getFullYear(), b.getMonth(), b.getDate());
+    return Math.round((ub - ua) / 86400000);
+  }
+
+  function addMonthsClamped(date, months) {
+    const y = date.getFullYear();
+    const m = date.getMonth();
+    const day = date.getDate();
+    const target = new Date(y, m, 1);
+    target.setMonth(target.getMonth() + months);
+    const lastDay = new Date(target.getFullYear(), target.getMonth() + 1, 0).getDate();
+    return new Date(target.getFullYear(), target.getMonth(), Math.min(day, lastDay));
+  }
+
+  function addDaysClamped(date, days) {
+    const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    d.setDate(d.getDate() + days);
+    return new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  }
+
+  /* =========================================================================
+     STATE
+     ========================================================================= */
+
+  function defaultSettings() {
+    return {
+      dateFormat: 'DD/MM/YYYY',
+      currency: 'INR',
+      notifyEnabled: false,
+      view: 'grid',
+      sidebarCollapsed: false
+    };
+  }
+
+  const state = {
+    products: [],
+    settings: defaultSettings(),
+    ui: {
+      search: '',
+      category: 'all',
+      status: 'all',
+      sort: 'newest',
+      view: 'grid',
+      page: 1,
+      expiryRange: 'upcoming'
+    },
+    route: 'dashboard'
+  };
+
+  /* =========================================================================
+     PERSISTENCE
+     ========================================================================= */
+
+  function isValidProduct(p) {
+    return p && typeof p === 'object' &&
+           typeof p.id === 'string' && p.id.length > 0 &&
+           typeof p.name === 'string';
+  }
+
+  function loadProducts() {
+    try {
+      const raw = localStorage.getItem(LS_PRODUCTS);
+      if (!raw) { state.products = []; return; }
+      const parsed = JSON.parse(raw);
+      if (!Array.isArray(parsed)) throw new Error('Corrupted product store');
+      state.products = parsed.filter(isValidProduct).map(normaliseProduct);
+    } catch (err) {
+      console.error('[ProofPocket] Could not read saved products:', err);
+      state.products = [];
+      toast('Saved data could not be read. Starting with an empty library.', 'error');
+    }
+  }
+
+  function normaliseProduct(p) {
+    return {
+      id: p.id,
+      name: String(p.name || 'Untitled product'),
+      brand: typeof p.brand === 'string' ? p.brand : '',
+      category: CATEGORIES.some(function (c) { return c.id === p.category; }) ? p.category : 'Other',
+      model: typeof p.model === 'string' ? p.model : '',
+      serial: typeof p.serial === 'string' ? p.serial : '',
+      price: (p.price === null || p.price === undefined || p.price === '' || isNaN(Number(p.price))) ? null : Number(p.price),
+      purchaseDate: typeof p.purchaseDate === 'string' ? p.purchaseDate : '',
+      warrantyDuration: (p.warrantyDuration === null || p.warrantyDuration === undefined || p.warrantyDuration === '' || isNaN(Number(p.warrantyDuration))) ? null : Number(p.warrantyDuration),
+      warrantyUnit: ['days', 'months', 'years'].indexOf(p.warrantyUnit) >= 0 ? p.warrantyUnit : 'years',
+      customExpiry: typeof p.customExpiry === 'string' && p.customExpiry ? p.customExpiry : null,
+      store: typeof p.store === 'string' ? p.store : '',
+      orderId: typeof p.orderId === 'string' ? p.orderId : '',
+      notes: typeof p.notes === 'string' ? p.notes : '',
+      receipt: (p.receipt && typeof p.receipt === 'object' && typeof p.receipt.dataUrl === 'string') ? {
+        name: String(p.receipt.name || 'receipt'),
+        type: String(p.receipt.type || ''),
+        size: Number(p.receipt.size) || 0,
+        dataUrl: p.receipt.dataUrl
+      } : null,
+      createdAt: typeof p.createdAt === 'string' ? p.createdAt : new Date().toISOString(),
+      updatedAt: typeof p.updatedAt === 'string' ? p.updatedAt : new Date().toISOString(),
+      isSample: !!p.isSample
+    };
+  }
+
+  function saveProducts() {
+    try {
+      localStorage.setItem(LS_PRODUCTS, JSON.stringify(state.products));
+      return true;
+    } catch (err) {
+      console.error('[ProofPocket] Save failed:', err);
+      toast('Could not save — browser storage is full. Try removing large receipt attachments.', 'error', 6000);
+      return false;
+    }
+  }
+
+  function loadSettings() {
+    try {
+      const raw = localStorage.getItem(LS_SETTINGS);
+      const base = defaultSettings();
+      if (!raw) { state.settings = base; return; }
+      const parsed = JSON.parse(raw);
+      if (!parsed || typeof parsed !== 'object') throw new Error('Corrupted settings');
+      state.settings = Object.assign(base, parsed);
+      if (!CURRENCIES[state.settings.currency]) state.settings.currency = 'INR';
+      if (['DD/MM/YYYY', 'MM/DD/YYYY', 'YYYY-MM-DD'].indexOf(state.settings.dateFormat) < 0) {
+        state.settings.dateFormat = 'DD/MM/YYYY';
+      }
+      if (['grid', 'list'].indexOf(state.settings.view) < 0) state.settings.view = 'grid';
+    } catch (err) {
+      console.warn('[ProofPocket] Settings reset:', err);
+      state.settings = defaultSettings();
+    }
+    state.ui.view = state.settings.view;
+  }
+
+  function saveSettings() {
+    try {
+      localStorage.setItem(LS_SETTINGS, JSON.stringify(state.settings));
+    } catch (err) {
+      console.warn('[ProofPocket] Could not save settings:', err);
+    }
+  }
+
+  function storageInfo() {
+    let bytes = 0;
+    try {
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.indexOf('proofpocket.') === 0) {
+          bytes += (localStorage.getItem(key) || '').length * 2;
+        }
+      }
+    } catch (err) { /* storage may be unavailable */ }
+    const limit = 5 * 1024 * 1024;
+    return { bytes: bytes, limit: limit, pct: clamp((bytes / limit) * 100, 0, 100) };
+  }
+
+  function formatBytes(n) {
+    if (n < 1024) return n + ' B';
+    if (n < 1024 * 1024) return (n / 1024).toFixed(1) + ' KB';
+    return (n / (1024 * 1024)).toFixed(2) + ' MB';
+  }
+
+  /* =========================================================================
+     FORMATTING
+     ========================================================================= */
+
+  function formatDate(dateOrISO) {
+    if (!dateOrISO) return '—';
+    let d = dateOrISO;
+    if (typeof dateOrISO === 'string') {
+      d = parseISODate(dateOrISO);
+      if (!d) return '—';
+    }
+    if (!(d instanceof Date) || isNaN(d.getTime())) return '—';
+    const dd = String(d.getDate()).padStart(2, '0');
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const yyyy = String(d.getFullYear());
+    switch (state.settings.dateFormat) {
+      case 'MM/DD/YYYY': return mm + '/' + dd + '/' + yyyy;
+      case 'YYYY-MM-DD': return yyyy + '-' + mm + '-' + dd;
+      default:           return dd + '/' + mm + '/' + yyyy;
+    }
+  }
+
+  function formatMoney(value) {
+    if (value === null || value === undefined || value === '' || isNaN(Number(value))) return '—';
+    const symbol = CURRENCIES[state.settings.currency] || '₹';
+    const num = Number(value);
+    let formatted;
+    try {
+      formatted = num.toLocaleString(undefined, { maximumFractionDigits: 2 });
+    } catch (err) {
+      formatted = String(num);
+    }
+    return symbol + formatted;
+  }
+
+  function pluralDays(n) {
+    return Math.abs(n) + (Math.abs(n) === 1 ? ' day' : ' days');
+  }
+
+  function formatMonthYear(month, year) {
+    const d = new Date(year, month, 1);
+    try {
+      return d.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+    } catch (err) {
+      const names = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+      return names[month] + ' ' + year;
+    }
+  }
+
+  /* =========================================================================
+     WARRANTY CALCULATION
+     ========================================================================= */
+
+  function computeExpiryDate(product) {
+    if (product.customExpiry) {
+      const custom = parseISODate(product.customExpiry);
+      if (custom) return custom;
+    }
+    const duration = Number(product.warrantyDuration);
+    if (!product.purchaseDate) return null;
+    if (product.warrantyDuration === null || product.warrantyDuration === undefined) return null;
+    if (!isFinite(duration) || duration <= 0) return null;
+
+    const start = parseISODate(product.purchaseDate);
+    if (!start) return null;
+
+    if (product.warrantyUnit === 'days')   return addDaysClamped(start, duration);
+    if (product.warrantyUnit === 'months') return addMonthsClamped(start, duration);
+    return addMonthsClamped(start, duration * 12);
+  }
+
+  function getStatus(product) {
+    const expiry = computeExpiryDate(product);
+
+    if (!expiry) {
+      return {
+        key: 'none', label: STATUS_META.none.label,
+        expiry: null, expiryISO: null, days: null, progress: 0
+      };
+    }
+
+    const today = todayLocal();
+    const days = daysBetween(today, expiry);
+
+    let key;
+    if (days < 0)        key = 'expired';
+    else if (days === 0) key = 'today';
+    else if (days <= 30) key = 'soon';
+    else                 key = 'active';
+
+    let progress = 100;
+    const start = parseISODate(product.purchaseDate);
+    if (start) {
+      const total = daysBetween(start, expiry);
+      const elapsed = daysBetween(start, today);
+      progress = total > 0 ? clamp((elapsed / total) * 100, 0, 100) : 100;
+    }
+
+    return {
+      key: key,
+      label: STATUS_META[key].label,
+      expiry: expiry,
+      expiryISO: toISODate(expiry),
+      days: days,
+      progress: progress
+    };
+  }
+
+  function warrantyDaysLabel(st) {
+    if (st.days === null) return 'No warranty';
+    if (st.days < 0) return 'Expired ' + pluralDays(st.days) + ' ago';
+    if (st.days === 0) return 'Expires today';
+    return pluralDays(st.days) + ' left';
+  }
+
+  function computeStats(products) {
+    const s = { total: products.length, active: 0, soon: 0, today: 0, expired: 0, none: 0 };
+    for (let i = 0; i < products.length; i++) {
+      const st = getStatus(products[i]);
+      s[st.key] += 1;
+    }
+    s.expiring30 = s.soon + s.today;
+    return s;
+  }
+
+  function computeTotalValue(products) {
+    let sum = 0;
+    let priced = 0;
+    for (let i = 0; i < products.length; i++) {
+      const price = products[i].price;
+      if (price !== null && price !== undefined && isFinite(price)) {
+        sum += Number(price);
+        priced += 1;
+      }
+    }
+    return { sum: sum, priced: priced };
+  }
+
+  function greetingWord() {
+    const h = new Date().getHours();
+    if (h < 5) return 'Good night';
+    if (h < 12) return 'Good morning';
+    if (h < 17) return 'Good afternoon';
+    if (h < 21) return 'Good evening';
+    return 'Good night';
+  }
+
+  function getAttentionItems(products) {
+    const out = [];
+    for (let i = 0; i < products.length; i++) {
+      const st = getStatus(products[i]);
+      if (st.days === null) continue;
+      if (st.days < 0 || st.days <= 7) {
+        out.push({ product: products[i], status: st });
+      }
+    }
+    out.sort(function (a, b) { return a.status.days - b.status.days; });
+    return out;
+  }
+
+  function computeCategoryCounts(products) {
+    const map = {};
+    for (let i = 0; i < products.length; i++) {
+      const cat = products[i].category || 'Other';
+      map[cat] = (map[cat] || 0) + 1;
+    }
+    return CATEGORIES
+      .map(function (c) { return { id: c.id, icon: c.icon, count: map[c.id] || 0 }; })
+      .filter(function (c) { return c.count > 0; })
+      .sort(function (a, b) { return b.count - a.count; });
+  }
+
+  /* =========================================================================
+     TOASTS
+     ========================================================================= */
+
+  const TOAST_STYLES = {
+    success: { icon: 'circle-check',  ring: 'border-success/30', accent: 'text-success' },
+    error:   { icon: 'circle-x',      ring: 'border-danger/30',  accent: 'text-danger'  },
+    warning: { icon: 'triangle-alert',ring: 'border-warning/30', accent: 'text-warning' },
+    info:    { icon: 'info',          ring: 'border-primary/30', accent: 'text-primary' }
+  };
+
+  function toast(message, type, duration) {
+    const kind = TOAST_STYLES[type] ? type : 'info';
+    const style = TOAST_STYLES[kind];
+    const root = document.getElementById('toastRoot');
+    if (!root) return;
+
+    const node = document.createElement('div');
+    node.className = 'toast-in pointer-events-auto flex w-full max-w-sm items-start gap-3 rounded-xl border ' +
+                     style.ring + ' bg-card/95 px-4 py-3 shadow-2xl backdrop-blur-xl';
+    node.setAttribute('role', 'status');
+
+    const iconWrap = document.createElement('span');
+    iconWrap.className = 'mt-0.5 shrink-0 ' + style.accent;
+    iconWrap.innerHTML = '<i data-lucide="' + style.icon + '" class="h-4 w-4"></i>';
+
+    const text = document.createElement('p');
+    text.className = 'min-w-0 flex-1 text-sm text-ink';
+    text.textContent = String(message);
+
+    const closeBtn = document.createElement('button');
+    closeBtn.type = 'button';
+    closeBtn.className = 'shrink-0 rounded-md p-1 text-muted transition hover:bg-white/10 hover:text-ink';
+    closeBtn.setAttribute('aria-label', 'Dismiss notification');
+    closeBtn.innerHTML = '<i data-lucide="x" class="h-3.5 w-3.5"></i>';
+
+    node.appendChild(iconWrap);
+    node.appendChild(text);
+    node.appendChild(closeBtn);
+    root.appendChild(node);
+
+    if (window.lucide) window.lucide.createIcons();
+
+    let removed = false;
+    function remove() {
+      if (removed) return;
+      removed = true;
+      node.style.transition = 'opacity .18s ease, transform .18s ease';
+      node.style.opacity = '0';
+      node.style.transform = 'translateY(6px)';
+      setTimeout(function () { node.remove(); }, 190);
+    }
+
+    closeBtn.addEventListener('click', remove);
+    setTimeout(remove, duration || 4200);
+  }
+
+  /* =========================================================================
+     MODAL SYSTEM
+     ========================================================================= */
+
+  let activeModal = { onClose: null, previousFocus: null };
+
+  function showModal(innerHTML, options) {
+    const opts = options || {};
+    closeModal();
+
+    const root = document.getElementById('modalRoot');
+    if (!root) return;
+
+    activeModal.previousFocus = document.activeElement;
+
+    const wrapper = document.createElement('div');
+    wrapper.className = 'fixed inset-0 z-50 flex items-end justify-center sm:items-center sm:p-4';
+    wrapper.innerHTML =
+      '<div class="absolute inset-0 bg-black/70 backdrop-blur-sm" data-close></div>' +
+      '<div class="modal-panel relative flex max-h-[92vh] w-full ' + (opts.size || 'max-w-2xl') +
+      ' flex-col overflow-hidden rounded-t-2xl border border-white/10 bg-card shadow-2xl sm:rounded-2xl" ' +
+      'role="dialog" aria-modal="true">' + innerHTML + '</div>';
+
+    root.appendChild(wrapper);
+    document.body.style.overflow = 'hidden';
+
+    activeModal.onClose = opts.onClose || null;
+
+    wrapper.querySelectorAll('[data-close]').forEach(function (el) {
+      el.addEventListener('click', closeModal);
+    });
+
+    if (window.lucide) window.lucide.createIcons();
+
+    const focusTarget = wrapper.querySelector('[autofocus]') ||
+                        wrapper.querySelector('input:not([type=hidden]), select, textarea, button');
+    if (focusTarget) {
+      setTimeout(function () { try { focusTarget.focus(); } catch (e) {} }, 60);
+    }
+  }
+
+  function closeModal() {
+    const root = document.getElementById('modalRoot');
+    if (root) root.innerHTML = '';
+    document.body.style.overflow = '';
+
+    const cb = activeModal.onClose;
+    const prev = activeModal.previousFocus;
+    activeModal = { onClose: null, previousFocus: null };
+
+    if (prev && typeof prev.focus === 'function' && document.contains(prev)) {
+      try { prev.focus(); } catch (e) {}
+    }
+    if (typeof cb === 'function') cb();
+  }
+
+  function confirmDialog(config) {
+    return new Promise(function (resolve) {
+      let settled = false;
+      function finish(value) {
+        if (settled) return;
+        settled = true;
+        resolve(value);
+      }
+
+      const requireText = config.requireText || null;
+      const danger = config.danger !== false;
+
+      const body =
+        '<div class="p-5 sm:p-6">' +
+          '<div class="flex items-start gap-3">' +
+            '<div class="grid h-10 w-10 shrink-0 place-items-center rounded-xl ' +
+              (danger ? 'bg-danger/15 text-danger' : 'bg-primary/15 text-primary') + '">' +
+              '<i data-lucide="' + (danger ? 'triangle-alert' : 'info') + '" class="h-5 w-5"></i>' +
+            '</div>' +
+            '<div class="min-w-0">' +
+              '<h2 class="text-base font-semibold leading-snug">' + esc(config.title || 'Are you sure?') + '</h2>' +
+              '<p class="mt-1.5 text-sm leading-relaxed text-muted">' + esc(config.message || '') + '</p>' +
+            '</div>' +
+          '</div>' +
+          (requireText ?
+            '<div class="mt-4">' +
+              '<label class="label" for="confirmTextInput">Type ' +
+                '<span class="font-mono font-semibold text-ink">' + esc(requireText) + '</span> to confirm</label>' +
+              '<input id="confirmTextInput" type="text" class="input" autocomplete="off" spellcheck="false" />' +
+            '</div>' : '') +
+          '<div class="mt-5 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">' +
+            '<button type="button" class="btn-ghost" data-close>' + esc(config.cancelText || 'Cancel') + '</button>' +
+            '<button type="button" class="' + (danger ? 'btn-danger' : 'btn-primary') + '" id="confirmOk"' +
+              (requireText ? ' disabled' : '') + '>' + esc(config.confirmText || 'Confirm') + '</button>' +
+          '</div>' +
+        '</div>';
+
+      showModal(body, { size: 'max-w-md', onClose: function () { finish(false); } });
+
+      const okBtn = document.getElementById('confirmOk');
+      if (!okBtn) { finish(false); return; }
+
+      if (requireText) {
+        const input = document.getElementById('confirmTextInput');
+        if (input) {
+          input.addEventListener('input', function () {
+            okBtn.disabled = input.value.trim() !== requireText;
+          });
+          setTimeout(function () { try { input.focus(); } catch (e) {} }, 60);
+        }
+      }
+
+      okBtn.addEventListener('click', function () {
+        finish(true);
+        closeModal();
+      });
+    });
+  }
+
+  /* =========================================================================
+     SHARED RENDER HELPERS
+     ========================================================================= */
+
+  function refreshIcons() {
+    if (window.lucide && typeof window.lucide.createIcons === 'function') {
+      window.lucide.createIcons();
+    }
+  }
+
+  function categoryMeta(id) {
+    for (let i = 0; i < CATEGORIES.length; i++) {
+      if (CATEGORIES[i].id === id) return CATEGORIES[i];
+    }
+    return CATEGORIES[CATEGORIES.length - 1];
+  }
+
+  function statusBadgeHTML(st) {
+    const meta = STATUS_META[st.key] || STATUS_META.none;
+    return '<span class="chip ' + meta.badge + '">' + esc(meta.label) + '</span>';
+  }
+
+  function progressHTML(st, product) {
+    if (!st.expiry) {
+      return '<div class="mt-3">' +
+               '<div class="h-1.5 w-full overflow-hidden rounded-full bg-white/5"></div>' +
+               '<p class="mt-1.5 text-[11px] text-muted">No warranty tracked</p>' +
+             '</div>';
+    }
+
+    const meta = STATUS_META[st.key] || STATUS_META.none;
+
+    if (st.days < 0) {
+      return '<div class="mt-3">' +
+               '<div class="h-1.5 w-full overflow-hidden rounded-full bg-white/5">' +
+                 '<div class="h-full bg-danger" style="width:100%"></div>' +
+               '</div>' +
+               '<p class="mt-1.5 text-[11px] text-danger">Expired ' + pluralDays(st.days) + ' ago</p>' +
+             '</div>';
+    }
+
+    let message;
+    if (st.days === 0) message = 'Expires today';
+    else message = pluralDays(st.days) + ' remaining';
+
+    const tone = (st.key === 'soon' || st.key === 'today') ? 'text-warning' : 'text-success';
+
+    return '<div class="mt-3">' +
+             '<div class="h-1.5 w-full overflow-hidden rounded-full bg-white/5">' +
+               '<div class="h-full ' + meta.bar + '" style="width:' + st.progress.toFixed(1) + '%"></div>' +
+             '</div>' +
+             '<p class="mt-1.5 text-[11px] ' + tone + '">' + esc(message) + '</p>' +
+           '</div>';
+  }
+
+  function emptyStateHTML(opts) {
+    return '<div class="card flex flex-col items-center justify-center px-6 py-14 text-center">' +
+             '<div class="grid h-16 w-16 place-items-center rounded-2xl bg-primary/10 text-primary">' +
+               '<i data-lucide="' + esc(opts.icon || 'package-open') + '" class="h-7 w-7"></i>' +
+             '</div>' +
+             '<h3 class="mt-4 text-base font-semibold">' + esc(opts.title) + '</h3>' +
+             '<p class="mt-1.5 max-w-sm text-sm leading-relaxed text-muted">' + esc(opts.message) + '</p>' +
+             (opts.actions ? '<div class="mt-5 flex flex-col gap-2 sm:flex-row">' + opts.actions + '</div>' : '') +
+           '</div>';
+  }
+
+  /* =========================================================================
+     ROUTER
+     ========================================================================= */
+
+  let lastRenderedRoute = null;
+
+  function currentRoute() {
+    const hash = (location.hash || '').replace(/^#\/?/, '').toLowerCase();
+    if (hash === 'products') return 'products';
+    if (hash === 'expirations') return 'expirations';
+    if (hash === 'settings') return 'settings';
+    return 'dashboard';
+  }
+
+  function renderView() {
+    const route = currentRoute();
+    const routeChanged = route !== lastRenderedRoute;
+    state.route = route;
+
+    const view = document.getElementById('view');
+    if (!view) return;
+
+    if (route === 'products') {
+      view.innerHTML = productsShellHTML();
+      renderProductsResults();
+    } else if (route === 'expirations') {
+      view.innerHTML = expirationsHTML();
+    } else if (route === 'settings') {
+      view.innerHTML = settingsHTML();
+    } else {
+      view.innerHTML = dashboardHTML();
+    }
+
+    updateNavActive();
+    refreshIcons();
+
+    if (routeChanged) {
+      lastRenderedRoute = route;
+      window.scrollTo({ top: 0, behavior: 'auto' });
+    }
+
+    syncSearchInputs();
+  }
+
+  function updateNavActive() {
+    const route = state.route;
+    document.querySelectorAll('[data-nav]').forEach(function (link) {
+      const isActive = link.getAttribute('data-nav') === route;
+      link.classList.toggle('is-active', isActive);
+      if (isActive) {
+        link.setAttribute('aria-current', 'page');
+        link.classList.remove('text-muted');
+        link.classList.add('text-ink');
+      } else {
+        link.removeAttribute('aria-current');
+        link.classList.add('text-muted');
+        link.classList.remove('text-ink');
+      }
+    });
+  }
+
+  function syncSearchInputs() {
+    const input = document.getElementById('productSearch');
+    if (input && input.value !== state.ui.search) {
+      input.value = state.ui.search;
+    }
+  }
+
+  /* =========================================================================
+     VIEW: DASHBOARD
+     ========================================================================= */
+
+  function dashboardHTML() {
+    const products = state.products;
+    const stats = computeStats(products);
+    const hasProducts = products.length > 0;
+
+    const addButton =
+      '<button type="button" data-action="add-product" class="btn-primary">' +
+        '<i data-lucide="plus" class="h-4 w-4"></i><span>Add Product</span>' +
+      '</button>';
+
+    /* ---------- Empty state ---------- */
+    if (!hasProducts) {
+      return '<div class="fade-in flex flex-col gap-4 sm:gap-5">' +
+        emptyHeroHTML() +
+        emptyStateHTML({
+          icon: 'package-open',
+          title: 'Your pocket is empty',
+          message: 'Add your first product to start tracking warranties and expiry dates. Everything is stored privately on this device.',
+          actions: addButton +
+            '<button type="button" data-action="load-samples" class="btn-ghost">' +
+              '<i data-lucide="sparkles" class="h-4 w-4"></i><span>Load sample data</span>' +
+            '</button>'
+        }) +
+      '</div>';
+    }
+
+    /* ---------- Data for populated state ---------- */
+    const recent = products.slice().sort(function (a, b) {
+      return new Date(b.createdAt) - new Date(a.createdAt);
+    }).slice(0, 5);
+
+    const upcoming = products
+      .map(function (p) { return { product: p, status: getStatus(p) }; })
+      .filter(function (x) { return x.status.expiry && x.status.days !== null && x.status.days >= 0; })
+      .sort(function (a, b) { return a.status.days - b.status.days; })
+      .slice(0, 5);
+
+    const attention = getAttentionItems(products).slice(0, 4);
+    const totalValue = computeTotalValue(products);
+    const categoryCounts = computeCategoryCounts(products);
+
+    return '<div class="fade-in flex flex-col gap-4 sm:gap-5">' +
+
+      /* 1) HERO with search + stats */
+      heroHTML(stats, addButton) +
+
+      /* 2) Contextual quick actions */
+      dashboardQuickActionsHTML() +
+
+      /* 3) Stat cards */
+      '<div class="grid grid-cols-2 gap-3 lg:grid-cols-5 lg:gap-4">' +
+        statCardHTML('Total products', stats.total, 'package', 'text-primary', 'bg-primary/10') +
+        statCardHTML('Active warranties', stats.active, 'shield-check', 'text-success', 'bg-success/10') +
+        statCardHTML('Expiring in 30 days', stats.expiring30, 'clock', 'text-warning', 'bg-warning/10') +
+        statCardHTML('Expired', stats.expired, 'shield-x', 'text-danger', 'bg-danger/10') +
+        statCardHTML(
+          'Value tracked',
+          totalValue.priced ? formatMoney(totalValue.sum) : '—',
+          'wallet', 'text-secondary', 'bg-secondary/10'
+        ) +
+      '</div>' +
+
+      /* 4) Attention strip */
+      attentionBannerHTML(attention, stats) +
+
+      /* 5) Recent + Upcoming */
+      '<div class="grid gap-4 lg:grid-cols-2">' +
+        '<section class="card overflow-hidden transition-shadow hover:shadow-lg hover:shadow-black/20">' +
+          sectionHeaderHTML('Recently added', 'clock-3', 'View all', '#/products') +
+          '<ul class="divide-y divide-white/5">' +
+            recent.map(recentRowHTML).join('') +
+          '</ul>' +
+        '</section>' +
+
+        '<section class="card overflow-hidden transition-shadow hover:shadow-lg hover:shadow-black/20">' +
+          sectionHeaderHTML('Upcoming expirations', 'alarm-clock', 'Manage', '#/expirations') +
+          (upcoming.length
+            ? '<ul class="divide-y divide-white/5">' + upcoming.map(upcomingRowHTML).join('') + '</ul>'
+            : '<div class="px-4 py-10 text-center text-sm text-muted">' +
+                '<i data-lucide="party-popper" class="mx-auto mb-2 h-6 w-6 text-success"></i>' +
+                'Nothing expiring right now.' +
+              '</div>') +
+        '</section>' +
+      '</div>' +
+
+      /* 6) Distribution panels */
+      '<div class="grid gap-4 lg:grid-cols-2">' +
+        '<section class="card p-5 transition-shadow hover:shadow-lg hover:shadow-black/20">' +
+          '<h2 class="mb-4 flex items-center gap-2 text-sm font-semibold">' +
+            '<i data-lucide="pie-chart" class="h-4 w-4 text-primary"></i>Warranty status distribution' +
+          '</h2>' +
+          distributionHTML(stats) +
+        '</section>' +
+
+        '<section class="card p-5 transition-shadow hover:shadow-lg hover:shadow-black/20">' +
+          '<h2 class="mb-4 flex items-center gap-2 text-sm font-semibold">' +
+            '<i data-lucide="shapes" class="h-4 w-4 text-primary"></i>By category' +
+          '</h2>' +
+          categoryBreakdownHTML(categoryCounts, stats.total) +
+        '</section>' +
+      '</div>' +
+
+      /* 7) Sample data notice */
+      (hasSamples()
+        ? '<div class="flex flex-col items-start gap-2 rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 text-sm sm:flex-row sm:items-center sm:justify-between">' +
+            '<p class="text-muted">You are viewing sample data. Remove it any time.</p>' +
+            '<button type="button" data-action="remove-samples" class="btn-ghost btn-sm">' +
+              '<i data-lucide="trash-2" class="h-3.5 w-3.5"></i><span>Remove sample data</span>' +
+            '</button>' +
+          '</div>'
+        : '') +
+
+    '</div>';
+  }
+
+  function heroHTML(stats, addButton) {
+    return '<section class="relative overflow-hidden rounded-2xl border border-white/5 bg-gradient-to-br from-primary/20 via-card to-secondary/10 p-5 sm:p-6">' +
+      '<div class="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-primary/20 blur-3xl" aria-hidden="true"></div>' +
+      '<div class="relative flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">' +
+        '<div class="min-w-0">' +
+          '<p class="text-xs font-medium uppercase tracking-wider text-primary">' + esc(greetingWord()) + '</p>' +
+          '<h1 class="mt-1 text-2xl font-bold tracking-tight sm:text-3xl">Your pocket, at a glance</h1>' +
+          '<p class="mt-1.5 text-sm text-muted">' +
+            stats.active + ' active · ' +
+            stats.expiring30 + ' expiring soon · ' +
+            stats.total + ' tracked' +
+          '</p>' +
+        '</div>' +
+        '<div class="shrink-0">' + addButton + '</div>' +
+      '</div>' +
+      '<form id="quickSearchForm" class="relative mt-4 w-full sm:max-w-md" role="search">' +
+        '<i data-lucide="search" class="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted"></i>' +
+        '<label for="quickSearch" class="sr-only">Quick search products</label>' +
+        '<input id="quickSearch" type="search" autocomplete="off" placeholder="Quick search — press Enter to see all results" ' +
+          'class="input !py-3 pl-10 pr-24" />' +
+        '<button type="submit" class="btn-primary btn-sm absolute right-2 top-1/2 -translate-y-1/2 !px-3 !py-1.5">Search</button>' +
+      '</form>' +
+    '</section>';
+  }
+
+  function emptyHeroHTML() {
+    return '<section class="relative overflow-hidden rounded-2xl border border-white/5 bg-gradient-to-br from-primary/20 via-card to-secondary/10 p-5 sm:p-6">' +
+      '<div class="pointer-events-none absolute -right-10 -top-10 h-40 w-40 rounded-full bg-primary/20 blur-3xl" aria-hidden="true"></div>' +
+      '<div class="relative">' +
+        '<p class="text-xs font-medium uppercase tracking-wider text-primary">' + esc(greetingWord()) + '</p>' +
+        '<h1 class="mt-1 text-2xl font-bold tracking-tight sm:text-3xl">Welcome to ProofPocket</h1>' +
+        '<p class="mt-1.5 text-sm text-muted">Track warranties, receipts and expiry dates in one place. Everything stays on your device.</p>' +
+      '</div>' +
+    '</section>';
+  }
+
+  function dashboardQuickActionsHTML() {
+    if (state.products.length === 0) return '';
+
+    const buttons = [];
+    if (!hasSamples()) {
+      buttons.push({ action: 'load-samples', icon: 'sparkles', label: 'Load sample data', cls: 'btn-ghost' });
+    }
+    if (computeStats(state.products).expiring30 > 0) {
+      buttons.push({ action: 'go-expirations', icon: 'bell-ring', label: 'Review expiring', cls: 'btn-ghost' });
+    }
+    if (!buttons.length) return '';
+
+    return '<div class="flex flex-wrap gap-2">' +
+      buttons.map(function (b) {
+        return '<button type="button" data-action="' + b.action + '" class="' + b.cls + ' btn-sm">' +
+                 '<i data-lucide="' + b.icon + '" class="h-3.5 w-3.5"></i>' +
+                 '<span>' + esc(b.label) + '</span>' +
+               '</button>';
+      }).join('') +
+    '</div>';
+  }
+
+  function statCardHTML(label, value, icon, iconColor, iconBg) {
+    const accent = iconBg.indexOf('/10') >= 0 ? iconBg.replace('/10', '/60') : iconBg;
+    return '<div class="group card relative overflow-hidden p-4 transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/10">' +
+             '<div class="absolute inset-x-0 top-0 h-0.5 ' + accent + '"></div>' +
+             '<div class="flex items-start justify-between gap-2">' +
+               '<div class="grid h-9 w-9 place-items-center rounded-xl ' + iconBg + ' ' + iconColor + '">' +
+                 '<i data-lucide="' + esc(icon) + '" class="h-4 w-4"></i>' +
+               '</div>' +
+             '</div>' +
+             '<p class="mt-3 truncate text-xl font-bold leading-tight tabular-nums sm:text-2xl" title="' + esc(String(value)) + '">' + esc(String(value)) + '</p>' +
+             '<p class="mt-1.5 text-[11px] font-medium uppercase tracking-wide text-muted">' + esc(label) + '</p>' +
+           '</div>';
+  }
+
+  function pageHeaderHTML(title, subtitle) {
+    return '<div class="min-w-0">' +
+             '<h1 class="text-xl font-semibold sm:text-2xl">' + esc(title) + '</h1>' +
+             '<p class="mt-1 text-sm text-muted">' + esc(subtitle) + '</p>' +
+           '</div>';
+  }
+
+  function sectionHeaderHTML(title, icon, linkLabel, href) {
+    return '<div class="flex items-center justify-between gap-3 border-b border-white/5 px-4 py-3">' +
+             '<h2 class="flex items-center gap-2 text-sm font-semibold">' +
+               '<i data-lucide="' + esc(icon) + '" class="h-4 w-4 text-primary"></i>' + esc(title) +
+             '</h2>' +
+             '<a href="' + esc(href) + '" class="rounded-lg px-2 py-1 text-xs font-medium text-primary transition hover:bg-primary/10">' +
+               esc(linkLabel) +
+             '</a>' +
+           '</div>';
+  }
+
+  function recentRowHTML(product) {
+    const st = getStatus(product);
+    const cat = categoryMeta(product.category);
+    const isNew = (Date.now() - new Date(product.createdAt).getTime()) < 7 * 86400000;
+    return '<li>' +
+      '<button type="button" data-action="open-product" data-id="' + esc(product.id) + '" ' +
+        'class="flex w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-white/5 focus:outline-none focus-visible:bg-white/5">' +
+        '<span class="relative grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary">' +
+          '<i data-lucide="' + esc(cat.icon) + '" class="h-4 w-4"></i>' +
+          (isNew ? '<span class="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-primary ring-2 ring-card"></span>' : '') +
+        '</span>' +
+        '<span class="min-w-0 flex-1">' +
+          '<span class="block truncate text-sm font-medium">' + esc(product.name) + '</span>' +
+          '<span class="block truncate text-xs text-muted">' +
+            esc(product.brand || cat.id) + ' · ' + esc(formatDate(product.purchaseDate)) +
+          '</span>' +
+        '</span>' +
+        statusBadgeHTML(st) +
+      '</button>' +
+    '</li>';
+  }
+
+  function upcomingRowHTML(item) {
+    const product = item.product;
+    const st = item.status;
+    const cat = categoryMeta(product.category);
+    const tone = st.key === 'soon' || st.key === 'today' ? 'text-warning' : 'text-success';
+    const daysLabel = st.days === 0 ? 'Today' : pluralDays(st.days);
+    return '<li>' +
+      '<button type="button" data-action="open-product" data-id="' + esc(product.id) + '" ' +
+        'class="flex w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-white/5 focus:outline-none focus-visible:bg-white/5">' +
+        '<span class="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-warning/10 text-warning">' +
+          '<i data-lucide="' + esc(cat.icon) + '" class="h-4 w-4"></i>' +
+        '</span>' +
+        '<span class="min-w-0 flex-1">' +
+          '<span class="block truncate text-sm font-medium">' + esc(product.name) + '</span>' +
+          '<span class="block truncate text-xs text-muted">Expires ' + esc(formatDate(st.expiryISO)) + '</span>' +
+        '</span>' +
+        '<span class="shrink-0 text-xs font-semibold ' + tone + '">' + esc(daysLabel) + '</span>' +
+      '</button>' +
+    '</li>';
+  }
+
+  function distributionHTML(stats) {
+    const total = stats.total || 1;
+    const rows = STATUS_ORDER.map(function (key) {
+      const count = stats[key] || 0;
+      const pct = (count / total) * 100;
+      const meta = STATUS_META[key];
+      return '<div class="flex items-center gap-3">' +
+               '<span class="w-28 shrink-0 text-xs text-muted">' + esc(meta.label) + '</span>' +
+               '<span class="relative h-2 flex-1 overflow-hidden rounded-full bg-white/5">' +
+                 '<span class="block h-full ' + meta.bar + ' transition-all duration-500" style="width:' + pct.toFixed(1) + '%"></span>' +
+               '</span>' +
+               '<span class="w-8 shrink-0 text-right text-xs font-semibold tabular-nums">' + count + '</span>' +
+             '</div>';
+    });
+    return '<div class="space-y-3">' + rows.join('') + '</div>';
+  }
+
+  function attentionBannerHTML(items, stats) {
+    const problems = (stats.today || 0) + (stats.expired || 0) + (stats.soon || 0);
+    if (!problems) {
+      return '<div class="flex items-center gap-3 rounded-xl border border-success/20 bg-success/5 px-4 py-2.5">' +
+               '<i data-lucide="shield-check" class="h-4 w-4 shrink-0 text-success"></i>' +
+               '<p class="text-xs text-muted">' +
+                 '<span class="font-semibold text-success">All healthy</span> · Nothing expires in the next 30 days' +
+               '</p>' +
+             '</div>';
+    }
+
+    const tone = stats.expired > 0 ? 'danger' : 'warning';
+    const cls = tone === 'danger'
+      ? 'border-danger/30 bg-danger/5'
+      : 'border-warning/30 bg-warning/5';
+    const accent = tone === 'danger' ? 'text-danger' : 'text-warning';
+
+    const parts = [];
+    if (stats.expired) parts.push(stats.expired + ' expired');
+    if (stats.today)   parts.push(stats.today + ' expiring today');
+    if (stats.soon)    parts.push(stats.soon + ' expiring soon');
+
+    return '<div class="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl border ' + cls + ' px-4 py-2.5">' +
+             '<i data-lucide="alert-triangle" class="h-4 w-4 shrink-0 ' + accent + '"></i>' +
+             '<p class="text-xs font-semibold ' + accent + '">Needs attention</p>' +
+             '<p class="text-xs text-muted">' + esc(parts.join(' · ')) + '</p>' +
+             '<a href="#/expirations" class="ml-auto text-xs font-medium ' + accent + ' underline-offset-2 hover:underline">Review →</a>' +
+           '</div>';
+  }
+
+  function categoryBreakdownHTML(categories, total) {
+    if (!categories.length) {
+      return '<p class="text-sm text-muted">No products yet.</p>';
+    }
+    const denominator = total || 1;
+    return '<div class="space-y-3">' +
+      categories.map(function (c) {
+        const pct = (c.count / denominator) * 100;
+        return '<div class="flex items-center gap-3">' +
+                 '<span class="grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-primary/10 text-primary">' +
+                   '<i data-lucide="' + esc(c.icon) + '" class="h-3.5 w-3.5"></i>' +
+                 '</span>' +
+                 '<span class="w-32 shrink-0 truncate text-xs text-muted">' + esc(c.id) + '</span>' +
+                 '<span class="relative h-2 flex-1 overflow-hidden rounded-full bg-white/5">' +
+                   '<span class="block h-full bg-primary transition-all duration-500" style="width:' + pct.toFixed(1) + '%"></span>' +
+                 '</span>' +
+                 '<span class="w-8 shrink-0 text-right text-xs font-semibold tabular-nums">' + c.count + '</span>' +
+               '</div>';
+      }).join('') +
+    '</div>';
+  }
+
+  function hasSamples() {
+    return state.products.some(function (p) { return p.isSample; });
+  }
+
+  /* =========================================================================
+     VIEW: PRODUCT LIBRARY
+     ========================================================================= */
+
+  function hasActiveFilters() {
+    return !!state.ui.search.trim() ||
+           state.ui.category !== 'all' ||
+           state.ui.status !== 'all';
+  }
+
+  function productsShellHTML() {
+    const categoryOptions = ['<option value="all">All categories</option>']
+      .concat(CATEGORIES.map(function (c) {
+        return '<option value="' + esc(c.id) + '"' + (state.ui.category === c.id ? ' selected' : '') + '>' +
+                 esc(c.id) + '</option>';
+      })).join('');
+
+    const statusOptions = ['<option value="all">All statuses</option>']
+      .concat(STATUS_ORDER.map(function (key) {
+        return '<option value="' + key + '"' + (state.ui.status === key ? ' selected' : '') + '>' +
+                 esc(STATUS_META[key].label) + '</option>';
+      })).join('');
+
+    const sortOptions = [
+      ['newest', 'Newest first'],
+      ['oldest', 'Oldest first'],
+      ['expiry', 'Expiry date (soonest)'],
+      ['name', 'Name (A–Z)'],
+      ['price-desc', 'Price (high → low)'],
+      ['price-asc', 'Price (low → high)']
+    ].map(function (pair) {
+      return '<option value="' + pair[0] + '"' + (state.ui.sort === pair[0] ? ' selected' : '') + '>' +
+               esc(pair[1]) + '</option>';
+    }).join('');
+
+    return '<div class="fade-in flex flex-col gap-4">' +
+
+      /* Header */
+      '<div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">' +
+        '<div class="min-w-0">' +
+          '<h1 class="text-xl font-semibold sm:text-2xl">Product Library</h1>' +
+          '<p id="productsCount" class="mt-1 text-sm text-muted">—</p>' +
+        '</div>' +
+        '<button type="button" data-action="add-product" class="btn-primary shrink-0 self-start sm:self-auto">' +
+          '<i data-lucide="plus" class="h-4 w-4"></i><span>Add Product</span>' +
+        '</button>' +
+      '</div>' +
+
+      /* Toolbar */
+      '<div class="card p-3 sm:p-4">' +
+
+        '<div class="flex flex-col gap-2 sm:flex-row sm:items-center">' +
+          '<div class="relative min-w-0 flex-1">' +
+            '<i data-lucide="search" class="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted"></i>' +
+            '<label for="productSearch" class="sr-only">Search products</label>' +
+            '<input id="productSearch" type="search" autocomplete="off" spellcheck="false" ' +
+              'class="input pl-10 pr-10" placeholder="Search by name, brand, model, serial or store…" ' +
+              'value="' + esc(state.ui.search) + '" />' +
+            '<button type="button" data-action="clear-search" id="clearSearchBtn" ' +
+              'class="absolute right-1.5 top-1/2 hidden -translate-y-1/2 rounded-lg p-1.5 text-muted transition hover:bg-white/10 hover:text-ink" ' +
+              'aria-label="Clear search">' +
+              '<i data-lucide="x" class="h-4 w-4"></i>' +
+            '</button>' +
+          '</div>' +
+
+          '<div class="flex shrink-0 items-center gap-1 self-start rounded-xl border border-white/10 bg-surface p-1" ' +
+               'role="group" aria-label="View mode">' +
+            '<button type="button" data-action="set-view" data-view="grid" title="Grid view" ' +
+              'class="flex items-center justify-center rounded-lg p-2 transition ' +
+              (state.ui.view === 'grid' ? 'bg-primary/20 text-primary' : 'text-muted hover:text-ink') + '">' +
+              '<i data-lucide="layout-grid" class="h-4 w-4"></i><span class="sr-only">Grid view</span>' +
+            '</button>' +
+            '<button type="button" data-action="set-view" data-view="list" title="List view" ' +
+              'class="flex items-center justify-center rounded-lg p-2 transition ' +
+              (state.ui.view === 'list' ? 'bg-primary/20 text-primary' : 'text-muted hover:text-ink') + '">' +
+              '<i data-lucide="list" class="h-4 w-4"></i><span class="sr-only">List view</span>' +
+            '</button>' +
+          '</div>' +
+        '</div>' +
+
+        '<div class="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-3">' +
+          '<div>' +
+            '<label class="sr-only" for="filterCategory">Filter by category</label>' +
+            '<select id="filterCategory" class="input !py-2 text-xs sm:text-sm">' + categoryOptions + '</select>' +
+          '</div>' +
+          '<div>' +
+            '<label class="sr-only" for="filterStatus">Filter by status</label>' +
+            '<select id="filterStatus" class="input !py-2 text-xs sm:text-sm">' + statusOptions + '</select>' +
+          '</div>' +
+          '<div>' +
+            '<label class="sr-only" for="sortBy">Sort products</label>' +
+            '<select id="sortBy" class="input !py-2 text-xs sm:text-sm">' + sortOptions + '</select>' +
+          '</div>' +
+        '</div>' +
+
+        '<div id="productsActiveFilters" class="hidden"></div>' +
+      '</div>' +
+
+      '<div id="productsResults"></div>' +
+    '</div>';
+  }
+
+  function getFilteredProducts() {
+    const query = state.ui.search.trim().toLowerCase();
+    let list = state.products.slice();
+
+    if (query) {
+      list = list.filter(function (p) {
+        return [p.name, p.brand, p.model, p.serial, p.store, p.category].some(function (value) {
+          return String(value || '').toLowerCase().indexOf(query) >= 0;
+        });
+      });
+    }
+
+    if (state.ui.category !== 'all') {
+      list = list.filter(function (p) { return p.category === state.ui.category; });
+    }
+
+    if (state.ui.status !== 'all') {
+      list = list.filter(function (p) { return getStatus(p).key === state.ui.status; });
+    }
+
+    function priceOf(p) {
+      const n = p.price;
+      return (n === null || n === undefined || !isFinite(Number(n))) ? null : Number(n);
+    }
+
+    const sort = state.ui.sort;
+    list.sort(function (a, b) {
+      if (sort === 'oldest') return new Date(a.createdAt) - new Date(b.createdAt);
+      if (sort === 'name')   return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
+      if (sort === 'expiry') {
+        const ea = computeExpiryDate(a);
+        const eb = computeExpiryDate(b);
+        const ta = ea ? ea.getTime() : Infinity;
+        const tb = eb ? eb.getTime() : Infinity;
+        if (ta === tb) return a.name.localeCompare(b.name);
+        return ta - tb;
+      }
+      if (sort === 'price-asc' || sort === 'price-desc') {
+        const pa = priceOf(a);
+        const pb = priceOf(b);
+        if (pa === null && pb === null) return a.name.localeCompare(b.name);
+        if (pa === null) return 1;
+        if (pb === null) return -1;
+        if (pa === pb) return a.name.localeCompare(b.name);
+        return sort === 'price-asc' ? pa - pb : pb - pa;
+      }
+      return new Date(b.createdAt) - new Date(a.createdAt);
+    });
+
+    return list;
+  }
+
+  function updateProductsCount(list, total) {
+    const el = document.getElementById('productsCount');
+    if (!el) return;
+
+    if (total === 0) {
+      el.textContent = 'No products yet';
+      return;
+    }
+
+    let text = hasActiveFilters()
+      ? 'Showing ' + list.length + ' of ' + total + ' product' + (total === 1 ? '' : 's')
+      : total + ' product' + (total === 1 ? '' : 's') + ' tracked';
+
+    const value = computeTotalValue(list);
+    if (value.priced > 0 && value.sum > 0) {
+      text += ' · ' + formatMoney(value.sum) + ' in value';
+    }
+    el.textContent = text;
+  }
+
+  function activeFilterChipHTML(filter, icon, label) {
+    return '<span class="inline-flex items-center gap-1 rounded-full border border-primary/25 bg-primary/10 py-1 pl-2.5 pr-1 text-[11px] font-medium text-primary">' +
+             '<i data-lucide="' + esc(icon) + '" class="h-3 w-3"></i>' +
+             '<span class="max-w-[14rem] truncate">' + esc(label) + '</span>' +
+             '<button type="button" data-action="clear-filter" data-filter="' + esc(filter) + '" ' +
+               'class="rounded-full p-0.5 transition hover:bg-primary/20" aria-label="Remove filter">' +
+               '<i data-lucide="x" class="h-3 w-3"></i>' +
+             '</button>' +
+           '</span>';
+  }
+
+  function renderActiveFilters() {
+    const el = document.getElementById('productsActiveFilters');
+    if (!el) return;
+
+    const chips = [];
+    const q = state.ui.search.trim();
+    if (q) {
+      chips.push(activeFilterChipHTML('search', 'search', 'Search: “' + q + '”'));
+    }
+    if (state.ui.category !== 'all') {
+      chips.push(activeFilterChipHTML('category', 'tag', state.ui.category));
+    }
+    if (state.ui.status !== 'all') {
+      chips.push(activeFilterChipHTML('status', 'filter', STATUS_META[state.ui.status].label));
+    }
+
+    if (!chips.length) {
+      el.classList.add('hidden');
+      el.innerHTML = '';
+      return;
+    }
+
+    el.classList.remove('hidden');
+    el.innerHTML =
+      '<div class="mt-3 flex flex-wrap items-center gap-1.5 border-t border-white/5 pt-3">' +
+        chips.join('') +
+        '<button type="button" data-action="reset-filters" ' +
+          'class="ml-auto inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold text-primary transition hover:bg-primary/10">' +
+          '<i data-lucide="rotate-ccw" class="h-3 w-3"></i><span>Clear all</span>' +
+        '</button>' +
+      '</div>';
+  }
+
+  function syncClearSearchButton() {
+    const btn = document.getElementById('clearSearchBtn');
+    if (!btn) return;
+    btn.classList.toggle('hidden', !state.ui.search);
+  }
+
+  function renderProductsResults() {
+    const container = document.getElementById('productsResults');
+    if (!container) return;
+
+    const list = getFilteredProducts();
+    const total = state.products.length;
+
+    const totalPages = Math.max(1, Math.ceil(list.length / PAGE_SIZE));
+    if (state.ui.page > totalPages) state.ui.page = totalPages;
+    if (state.ui.page < 1) state.ui.page = 1;
+
+    const startIndex = (state.ui.page - 1) * PAGE_SIZE;
+    const pageItems = list.slice(startIndex, startIndex + PAGE_SIZE);
+
+    updateProductsCount(list, total);
+    renderActiveFilters();
+    syncClearSearchButton();
+
+    if (!list.length) {
+      const noProductsAtAll = total === 0;
+      container.innerHTML = emptyStateHTML({
+        icon: noProductsAtAll ? 'package-open' : 'search-x',
+        title: noProductsAtAll ? 'No products yet' : 'No matching products',
+        message: noProductsAtAll
+          ? 'Add your first product to start tracking its warranty and receipts.'
+          : 'Nothing matches your current search and filters. Try a different term or clear the filters to see everything again.',
+        actions: noProductsAtAll
+          ? '<button type="button" data-action="add-product" class="btn-primary">' +
+              '<i data-lucide="plus" class="h-4 w-4"></i><span>Add Product</span></button>' +
+            '<button type="button" data-action="load-samples" class="btn-ghost">' +
+              '<i data-lucide="sparkles" class="h-4 w-4"></i><span>Load sample data</span></button>'
+          : '<button type="button" data-action="reset-filters" class="btn-primary">' +
+              '<i data-lucide="rotate-ccw" class="h-4 w-4"></i><span>Reset filters</span></button>'
+      });
+      refreshIcons();
+      return;
+    }
+
+    let html = '';
+    if (state.ui.view === 'list') {
+      html += '<ul class="card divide-y divide-white/5 overflow-hidden">';
+      html += pageItems.map(productListRowHTML).join('');
+      html += '</ul>';
+    } else {
+      html += '<div class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">';
+      html += pageItems.map(productCardHTML).join('');
+      html += '</div>';
+    }
+
+    const from = startIndex + 1;
+    const to = startIndex + pageItems.length;
+
+    html += '<div class="mt-4 flex flex-col items-center justify-between gap-3 sm:flex-row">' +
+              '<p class="text-xs text-muted">Showing ' +
+                '<span class="font-semibold text-ink">' + from + '–' + to + '</span> of ' + list.length +
+              '</p>' +
+              (totalPages > 1
+                ? '<div class="flex items-center gap-2">' +
+                    '<button type="button" data-action="page" data-page="' + (state.ui.page - 1) + '" ' +
+                      'class="btn-ghost btn-sm"' + (state.ui.page <= 1 ? ' disabled' : '') + '>' +
+                      '<i data-lucide="chevron-left" class="h-4 w-4"></i><span>Prev</span>' +
+                    '</button>' +
+                    '<span class="text-xs text-muted">Page ' + state.ui.page + ' of ' + totalPages + '</span>' +
+                    '<button type="button" data-action="page" data-page="' + (state.ui.page + 1) + '" ' +
+                      'class="btn-ghost btn-sm"' + (state.ui.page >= totalPages ? ' disabled' : '') + '>' +
+                      '<span>Next</span><i data-lucide="chevron-right" class="h-4 w-4"></i>' +
+                    '</button>' +
+                  '</div>'
+                : '') +
+            '</div>';
+
+    container.innerHTML = html;
+    refreshIcons();
+  }
+
+  function productCardHTML(product) {
+    const st = getStatus(product);
+    const cat = categoryMeta(product.category);
+    const hasReceipt = !!product.receipt;
+    const priceHTML = (product.price === null || product.price === undefined)
+      ? '<span class="text-xs text-muted">No price</span>'
+      : '<span class="truncate text-xs font-semibold text-ink">' + esc(formatMoney(product.price)) + '</span>';
+
+    return '<article role="button" tabindex="0" data-action="open-product" data-id="' + esc(product.id) + '" ' +
+      'aria-label="Open details for ' + esc(product.name) + '" ' +
+      'class="group flex cursor-pointer flex-col rounded-2xl border border-white/5 bg-card p-4 transition duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:bg-surface hover:shadow-lg hover:shadow-black/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/60">' +
+
+      '<div class="flex items-start justify-between gap-2">' +
+        '<span class="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary/15 text-primary">' +
+          '<i data-lucide="' + esc(cat.icon) + '" class="h-5 w-5"></i>' +
+        '</span>' +
+        '<div class="flex min-w-0 items-center gap-1.5">' +
+          (hasReceipt
+            ? '<span class="grid h-6 w-6 place-items-center rounded-md bg-white/5 text-muted" title="Receipt attached">' +
+                '<i data-lucide="paperclip" class="h-3.5 w-3.5"></i></span>'
+            : '') +
+          statusBadgeHTML(st) +
+        '</div>' +
+      '</div>' +
+
+      '<h3 class="mt-3 line-clamp-2 text-sm font-semibold leading-snug">' + esc(product.name) + '</h3>' +
+      '<p class="mt-0.5 truncate text-xs text-muted">' + esc(product.brand || product.category) + '</p>' +
+
+      '<dl class="mt-3 space-y-1 text-xs">' +
+        '<div class="flex items-center justify-between gap-2">' +
+          '<dt class="text-muted">Purchased</dt>' +
+          '<dd class="font-medium">' + esc(formatDate(product.purchaseDate)) + '</dd>' +
+        '</div>' +
+        '<div class="flex items-center justify-between gap-2">' +
+          '<dt class="text-muted">Expires</dt>' +
+          '<dd class="font-medium">' + (st.expiryISO ? esc(formatDate(st.expiryISO)) : '—') + '</dd>' +
+        '</div>' +
+      '</dl>' +
+
+      progressHTML(st, product) +
+
+      '<div class="mt-auto flex items-center justify-between gap-2 border-t border-white/5 pt-3">' +
+        priceHTML +
+        '<div class="flex shrink-0 items-center gap-0.5">' +
+          '<button type="button" data-action="edit-product" data-id="' + esc(product.id) + '" ' +
+            'class="icon-btn" title="Edit" aria-label="Edit ' + esc(product.name) + '">' +
+            '<i data-lucide="pencil" class="h-3.5 w-3.5"></i></button>' +
+          '<button type="button" data-action="delete-product" data-id="' + esc(product.id) + '" ' +
+            'class="icon-btn icon-btn-danger" title="Delete" aria-label="Delete ' + esc(product.name) + '">' +
+            '<i data-lucide="trash-2" class="h-3.5 w-3.5"></i></button>' +
+        '</div>' +
+      '</div>' +
+    '</article>';
+  }
+
+  function productListRowHTML(product) {
+    const st = getStatus(product);
+    const cat = categoryMeta(product.category);
+    const hasReceipt = !!product.receipt;
+    const priceHTML = (product.price === null || product.price === undefined)
+      ? '<span class="text-muted">—</span>'
+      : esc(formatMoney(product.price));
+
+    return '<li>' +
+      '<div role="button" tabindex="0" data-action="open-product" data-id="' + esc(product.id) + '" ' +
+        'aria-label="Open details for ' + esc(product.name) + '" ' +
+        'class="flex cursor-pointer items-center gap-3 px-4 py-3 transition hover:bg-white/5 focus:outline-none focus-visible:bg-white/5">' +
+
+        '<span class="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-primary/10 text-primary">' +
+          '<i data-lucide="' + esc(cat.icon) + '" class="h-4 w-4"></i>' +
+        '</span>' +
+
+        '<div class="min-w-0 flex-1">' +
+          '<p class="flex items-center gap-1.5 truncate text-sm font-medium">' +
+            '<span class="truncate">' + esc(product.name) + '</span>' +
+            (hasReceipt ? '<i data-lucide="paperclip" class="h-3 w-3 shrink-0 text-muted" title="Receipt attached"></i>' : '') +
+          '</p>' +
+          '<p class="truncate text-xs text-muted">' +
+            esc(product.brand || product.category) + ' · Purchased ' + esc(formatDate(product.purchaseDate)) +
+          '</p>' +
+        '</div>' +
+
+        '<div class="hidden w-36 shrink-0 text-right text-xs sm:block">' +
+          '<p class="font-medium">' + (st.expiryISO ? esc(formatDate(st.expiryISO)) : '—') + '</p>' +
+          '<p class="text-muted">' + esc(warrantyDaysLabel(st)) + '</p>' +
+        '</div>' +
+
+        '<span class="hidden w-20 shrink-0 truncate text-right text-xs font-semibold sm:block">' + priceHTML + '</span>' +
+
+        '<span class="shrink-0">' + statusBadgeHTML(st) + '</span>' +
+
+        '<div class="flex shrink-0 items-center gap-0.5">' +
+          '<button type="button" data-action="edit-product" data-id="' + esc(product.id) + '" ' +
+            'class="icon-btn" title="Edit" aria-label="Edit ' + esc(product.name) + '">' +
+            '<i data-lucide="pencil" class="h-3.5 w-3.5"></i></button>' +
+          '<button type="button" data-action="delete-product" data-id="' + esc(product.id) + '" ' +
+            'class="icon-btn icon-btn-danger" title="Delete" aria-label="Delete ' + esc(product.name) + '">' +
+            '<i data-lucide="trash-2" class="h-3.5 w-3.5"></i></button>' +
+        '</div>' +
+      '</div>' +
+    '</li>';
+  }
+
+  /* =========================================================================
+     VIEW: EXPIRATIONS  (redesigned)
+     ========================================================================= */
+
+  /* Extract every product that has a computable expiry, with its status. */
+  function getExpiryItems() {
+    return state.products
+      .map(function (p) { return { product: p, status: getStatus(p) }; })
+      .filter(function (x) { return x.status.days !== null; });
+  }
+
+  /* Summary numbers for the hero + filter pill badges. */
+  function getExpirySummary(items) {
+    const s = { upcoming: 0, today: 0, week: 0, month: 0, quarter: 0, expired: 0 };
+    for (let i = 0; i < items.length; i++) {
+      const d = items[i].status.days;
+      if (d < 0) { s.expired += 1; continue; }
+      s.upcoming += 1;
+      if (d === 0) s.today += 1;
+      if (d <= 7)  s.week += 1;
+      if (d <= 30) s.month += 1;
+      if (d <= 90) s.quarter += 1;
+    }
+    return s;
+  }
+
+  /* Reduce the full item list to the subset selected by the active tab. */
+  function filterExpiryItems(items, range) {
+    if (range === 'expired') {
+      return items.filter(function (x) { return x.status.days < 0; });
+    }
+    const upcoming = items.filter(function (x) { return x.status.days >= 0; });
+    if (range === 'upcoming') return upcoming;
+    const n = Number(range);
+    if (!isFinite(n)) return upcoming;
+    return upcoming.filter(function (x) { return x.status.days <= n; });
+  }
+
+  /* Group a sorted item list into month buckets ({month, year, items}). */
+  function groupExpiryByMonth(items) {
+    const groups = [];
+    const index = {};
+    items.forEach(function (item) {
+      const d = parseISODate(item.status.expiryISO);
+      if (!d) return;
+      const key = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+      if (!index[key]) {
+        index[key] = { key: key, month: d.getMonth(), year: d.getFullYear(), items: [] };
+        groups.push(index[key]);
+      }
+      index[key].items.push(item);
+    });
+    return groups;
+  }
+
+  function expirationsHTML() {
+    /* ---------- Empty library ---------- */
+    if (state.products.length === 0) {
+      return '<div class="fade-in flex flex-col gap-5">' +
+        pageHeaderHTML('Expirations', 'Stay ahead of every warranty deadline.') +
+        emptyStateHTML({
+          icon: 'bell-ring',
+          title: 'Nothing to track yet',
+          message: 'Add a product with a purchase date and warranty period, and its expiry will appear here automatically.',
+          actions: '<button type="button" data-action="add-product" class="btn-primary">' +
+                     '<i data-lucide="plus" class="h-4 w-4"></i><span>Add Product</span></button>' +
+                   '<button type="button" data-action="load-samples" class="btn-ghost">' +
+                     '<i data-lucide="sparkles" class="h-4 w-4"></i><span>Load sample data</span></button>'
+        }) +
+      '</div>';
+    }
+
+    const allItems = getExpiryItems();
+    const summary = getExpirySummary(allItems);
+    const range = state.ui.expiryRange || 'upcoming';
+    const filtered = filterExpiryItems(allItems, range);
+    const sorted = filtered.slice().sort(function (a, b) {
+      return range === 'expired'
+        ? b.status.days - a.status.days   // most recently expired first
+        : a.status.days - b.status.days;  // soonest first
+    });
+    const groups = groupExpiryByMonth(sorted);
+    const noWarrantyCount = state.products.length - allItems.length;
+
+    const notificationsSupported = ('Notification' in window);
+    const permission = notificationsSupported ? Notification.permission : 'unsupported';
+
+    const activeTab = EXPIRY_TABS.filter(function (t) { return t.id === range; })[0];
+    const listHeaderLabel = activeTab ? activeTab.label : 'All upcoming';
+
+    return '<div class="fade-in flex flex-col gap-4 sm:gap-5">' +
+
+      /* ---------- Header + quick actions ---------- */
+      '<div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">' +
+        '<div class="min-w-0">' +
+          '<h1 class="text-xl font-semibold sm:text-2xl">Expirations</h1>' +
+          '<p class="mt-1 text-sm text-muted">Stay ahead of every warranty deadline.</p>' +
+        '</div>' +
+        '<div class="flex flex-wrap gap-2">' +
+          (notificationsSupported
+            ? '<button type="button" data-action="enable-notifications" class="btn-ghost btn-sm" ' +
+                (permission === 'granted' ? 'disabled' : '') + '>' +
+                '<i data-lucide="bell" class="h-3.5 w-3.5"></i>' +
+                '<span>' + (permission === 'granted' ? 'Notifications on' : 'Enable reminders') + '</span>' +
+              '</button>'
+            : '') +
+          (permission === 'granted'
+            ? '<button type="button" data-action="notify-now" class="btn-ghost btn-sm">' +
+                '<i data-lucide="send" class="h-3.5 w-3.5"></i><span>Notify now</span></button>'
+            : '') +
+          '<button type="button" data-action="export-ics" class="btn-ghost btn-sm">' +
+            '<i data-lucide="calendar-plus" class="h-3.5 w-3.5"></i><span>Export .ics</span></button>' +
+        '</div>' +
+      '</div>' +
+
+      /* ---------- Gradient overview ---------- */
+      expiryHeroHTML(summary, allItems.length) +
+
+      /* ---------- Filter pills ---------- */
+      expiryTabsHTML(summary, range) +
+
+      /* ---------- Grouped list ---------- */
+      '<section class="flex flex-col gap-3">' +
+        '<div class="flex items-center justify-between gap-3">' +
+          '<h2 class="flex items-center gap-2 text-sm font-semibold">' +
+            '<i data-lucide="list-filter" class="h-4 w-4 text-primary"></i>' +
+            '<span>' + esc(listHeaderLabel) + '</span>' +
+            '<span class="chip bg-white/5 text-muted border border-white/10">' + sorted.length + '</span>' +
+          '</h2>' +
+          (range !== 'upcoming'
+            ? '<button type="button" data-action="expiry-range" data-range="upcoming" ' +
+                'class="text-xs font-medium text-primary transition hover:underline">' +
+                'Show all upcoming →</button>'
+            : '') +
+        '</div>' +
+
+        (sorted.length
+          ? groups.map(expiryMonthGroupHTML).join('')
+          : expiryEmptyHTML(range)) +
+      '</section>' +
+
+      /* ---------- Products without warranty ---------- */
+      (noWarrantyCount > 0
+        ? '<div class="flex items-start gap-2.5 rounded-xl border border-white/5 bg-white/[0.02] px-3.5 py-3">' +
+            '<i data-lucide="info" class="mt-0.5 h-4 w-4 shrink-0 text-muted"></i>' +
+            '<p class="text-xs leading-relaxed text-muted">' +
+              noWarrantyCount + ' product' + (noWarrantyCount === 1 ? '' : 's') +
+              ' in your library ' + (noWarrantyCount === 1 ? 'has' : 'have') +
+              ' no warranty period recorded, so ' + (noWarrantyCount === 1 ? 'it is' : 'they are') +
+              ' not listed here. Edit ' + (noWarrantyCount === 1 ? 'it' : 'them') +
+              ' to add a warranty duration or custom expiry date.' +
+            '</p>' +
+          '</div>'
+        : '') +
+
+      /* ---------- Reminder limitation ---------- */
+      '<div class="flex items-start gap-2.5 rounded-xl border border-warning/20 bg-warning/5 px-3.5 py-3">' +
+        '<i data-lucide="info" class="mt-0.5 h-4 w-4 shrink-0 text-warning"></i>' +
+        '<p class="text-xs leading-relaxed text-muted">' +
+          '<span class="font-semibold text-warning">Heads up:</span> ' +
+          'browser reminders only fire while ProofPocket is open. For reminders that work with the browser closed, ' +
+          'export the .ics file and import it into your calendar app.' +
+        '</p>' +
+      '</div>' +
+
+    '</div>';
+  }
+
+  function expiryHeroHTML(summary, trackedCount) {
+    const cells = [
+      { label: 'Expiring today', value: summary.today,   icon: 'alarm-clock',   tone: 'warning' },
+      { label: 'Next 7 days',    value: summary.week,    icon: 'calendar-days', tone: 'warning' },
+      { label: 'Next 30 days',   value: summary.month,   icon: 'calendar',      tone: 'primary' },
+      { label: 'Expired',        value: summary.expired, icon: 'shield-x',      tone: 'danger'  }
+    ];
+    const toneMap = {
+      warning: { fg: 'text-warning' },
+      primary: { fg: 'text-primary' },
+      danger:  { fg: 'text-danger'  }
+    };
+
+    const nextLabel = summary.month > 0
+      ? summary.month + ' expiring within 30 days'
+      : 'No deadlines in the next 30 days';
+
+    return '<section class="relative overflow-hidden rounded-2xl border border-white/5 bg-gradient-to-br from-primary/20 via-card to-secondary/10 p-4 sm:p-5">' +
+      '<div class="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-primary/20 blur-3xl" aria-hidden="true"></div>' +
+      '<div class="relative">' +
+        '<div class="flex items-start justify-between gap-3">' +
+          '<div class="min-w-0">' +
+            '<p class="text-[11px] font-medium uppercase tracking-wider text-primary">Deadline overview</p>' +
+            '<h2 class="mt-1 text-lg font-bold tracking-tight sm:text-xl">' +
+              trackedCount + ' warrant' + (trackedCount === 1 ? 'y' : 'ies') + ' tracked' +
+            '</h2>' +
+            '<p class="mt-1 text-sm text-muted">' + esc(nextLabel) + '</p>' +
+          '</div>' +
+          '<div class="hidden h-11 w-11 shrink-0 place-items-center rounded-xl bg-primary/15 text-primary sm:grid">' +
+            '<i data-lucide="bell-ring" class="h-5 w-5"></i>' +
+          '</div>' +
+        '</div>' +
+        '<div class="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">' +
+          cells.map(function (c) {
+            const t = toneMap[c.tone] || toneMap.primary;
+            return '<div class="rounded-xl border border-white/10 bg-black/20 px-3 py-2.5 backdrop-blur">' +
+                     '<div class="flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-wide text-muted">' +
+                       '<i data-lucide="' + c.icon + '" class="h-3 w-3 ' + t.fg + '"></i>' +
+                       '<span class="truncate">' + esc(c.label) + '</span>' +
+                     '</div>' +
+                     '<p class="mt-1 text-2xl font-bold leading-none tabular-nums ' + t.fg + '">' + c.value + '</p>' +
+                   '</div>';
+          }).join('') +
+        '</div>' +
+      '</div>' +
+    '</section>';
+  }
+
+  function expiryTabsHTML(summary, active) {
+    return '<div class="no-scrollbar -mx-1 flex gap-1.5 overflow-x-auto px-1 pb-1" role="tablist" aria-label="Filter expirations">' +
+      EXPIRY_TABS.map(function (t) {
+        const count = summary[t.field] || 0;
+        const isActive = active === t.id;
+        return '<button type="button" role="tab" aria-selected="' + (isActive ? 'true' : 'false') + '" ' +
+          'data-action="expiry-range" data-range="' + t.id + '" ' +
+          'class="flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition ' +
+          (isActive
+            ? 'border-primary/40 bg-primary/15 text-primary'
+            : 'border-white/10 bg-white/[0.02] text-muted hover:bg-white/5 hover:text-ink') + '">' +
+          '<i data-lucide="' + t.icon + '" class="h-3.5 w-3.5"></i>' +
+          '<span>' + esc(t.label) + '</span>' +
+          '<span class="rounded-full px-1.5 py-0.5 text-[10px] tabular-nums ' +
+            (isActive ? 'bg-primary/20 text-primary' : 'bg-white/10 text-muted') + '">' + count + '</span>' +
+        '</button>';
+      }).join('') +
+    '</div>';
+  }
+
+  function expiryMonthGroupHTML(group) {
+    return '<section class="card overflow-hidden">' +
+      '<div class="flex items-center justify-between gap-3 border-b border-white/5 bg-white/[0.015] px-4 py-2.5">' +
+        '<h3 class="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted">' +
+          '<i data-lucide="calendar" class="h-3.5 w-3.5 text-primary"></i>' +
+          esc(formatMonthYear(group.month, group.year)) +
+        '</h3>' +
+        '<span class="text-[11px] text-muted">' + group.items.length + ' item' + (group.items.length === 1 ? '' : 's') + '</span>' +
+      '</div>' +
+      '<ul class="divide-y divide-white/5">' +
+        group.items.map(expiryRowHTML).join('') +
+      '</ul>' +
+    '</section>';
+  }
+
+  function expiryRowHTML(item) {
+    const product = item.product;
+    const st = item.status;
+    const cat = categoryMeta(product.category);
+    const expired = st.days < 0;
+    const today = st.days === 0;
+
+    const tone = expired ? 'danger' : (st.days <= 7 ? 'warning' : 'primary');
+    const iconTone = {
+      danger:  'bg-danger/10 text-danger',
+      warning: 'bg-warning/10 text-warning',
+      primary: 'bg-primary/10 text-primary'
+    }[tone];
+
+    const daysTone = expired ? 'text-danger' : (st.days <= 7 ? 'text-warning' : 'text-success');
+
+    let daysLabel;
+    if (expired)         daysLabel = Math.abs(st.days) + 'd ago';
+    else if (today)      daysLabel = 'Today';
+    else if (st.days === 1) daysLabel = 'Tomorrow';
+    else                 daysLabel = st.days + ' days';
+
+    const meta = STATUS_META[st.key] || STATUS_META.none;
+
+    return '<li>' +
+      '<div role="button" tabindex="0" data-action="open-product" data-id="' + esc(product.id) + '" ' +
+        'aria-label="Open details for ' + esc(product.name) + '" ' +
+        'class="group flex cursor-pointer items-center gap-3 px-4 py-3 transition hover:bg-white/5 focus:outline-none focus-visible:bg-white/5">' +
+
+        '<span class="relative grid h-10 w-10 shrink-0 place-items-center rounded-xl ' + iconTone + '">' +
+          '<i data-lucide="' + esc(cat.icon) + '" class="h-5 w-5"></i>' +
+          (today
+            ? '<span class="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 animate-pulse rounded-full bg-warning ring-2 ring-card"></span>'
+            : '') +
+        '</span>' +
+
+        '<div class="min-w-0 flex-1">' +
+          '<div class="flex items-center gap-2">' +
+            '<p class="truncate text-sm font-semibold">' + esc(product.name) + '</p>' +
+            (product.receipt
+              ? '<i data-lucide="paperclip" class="h-3 w-3 shrink-0 text-muted" title="Receipt attached"></i>'
+              : '') +
+          '</div>' +
+          '<p class="mt-0.5 truncate text-xs text-muted">' +
+            esc(product.brand || product.category) + ' · Expires ' + esc(formatDate(st.expiryISO)) +
+          '</p>' +
+          '<div class="mt-2 h-1 overflow-hidden rounded-full bg-white/5">' +
+            '<div class="h-full ' + meta.bar + '" style="width:' + st.progress.toFixed(1) + '%"></div>' +
+          '</div>' +
+        '</div>' +
+
+        '<div class="shrink-0 text-right">' +
+          '<p class="text-sm font-bold tabular-nums ' + daysTone + '">' + esc(daysLabel) + '</p>' +
+          '<p class="mt-0.5 text-[10px] font-medium uppercase tracking-wide text-muted">' + esc(meta.label) + '</p>' +
+        '</div>' +
+      '</div>' +
+    '</li>';
+  }
+
+  function expiryEmptyHTML(range) {
+    const config = {
+      upcoming: {
+        icon: 'party-popper',
+        title: 'Nothing expiring soon',
+        message: 'No warranties are approaching expiry. New deadlines will appear here automatically.'
+      },
+      '7': {
+        icon: 'shield-check',
+        title: 'Clear for the next 7 days',
+        message: 'No warranties expire within a week. You are all caught up.'
+      },
+      '30': {
+        icon: 'shield-check',
+        title: 'Clear for the next 30 days',
+        message: 'No warranties expire in the next month.'
+      },
+      '90': {
+        icon: 'shield-check',
+        title: 'Clear for the next 90 days',
+        message: 'No warranties expire in the next three months.'
+      },
+      expired: {
+        icon: 'circle-check',
+        title: 'Nothing has expired',
+        message: 'Every tracked warranty is still within its period. Nice.'
+      }
+    }[range] || {
+      icon: 'search-x',
+      title: 'Nothing here',
+      message: 'No items match this filter.'
+    };
+
+    return '<div class="card flex flex-col items-center justify-center px-6 py-12 text-center">' +
+      '<div class="grid h-14 w-14 place-items-center rounded-2xl bg-success/10 text-success">' +
+        '<i data-lucide="' + config.icon + '" class="h-6 w-6"></i>' +
+      '</div>' +
+      '<h3 class="mt-3 text-base font-semibold">' + esc(config.title) + '</h3>' +
+      '<p class="mt-1 max-w-sm text-sm leading-relaxed text-muted">' + esc(config.message) + '</p>' +
+    '</div>';
+  }
+
+  /* =========================================================================
+     VIEW: SETTINGS
+     ========================================================================= */
+
+  function settingsHTML() {
+    const s = state.settings;
+    const info = storageInfo();
+    const notificationsSupported = ('Notification' in window);
+    const permission = notificationsSupported ? Notification.permission : 'unsupported';
+
+    const dateOptions = ['DD/MM/YYYY', 'MM/DD/YYYY', 'YYYY-MM-DD'].map(function (f) {
+      return '<option value="' + f + '"' + (s.dateFormat === f ? ' selected' : '') + '>' + f + '</option>';
+    }).join('');
+
+    const currencyOptions = Object.keys(CURRENCIES).map(function (code) {
+      return '<option value="' + code + '"' + (s.currency === code ? ' selected' : '') + '>' +
+               code + ' (' + CURRENCIES[code] + ')</option>';
+    }).join('');
+
+    return '<div class="fade-in mx-auto flex max-w-3xl flex-col gap-5">' +
+
+      pageHeaderHTML('Settings', 'Preferences are saved in this browser only. Nothing is ever uploaded.') +
+
+      '<section class="card p-5">' +
+        '<h2 class="mb-4 flex items-center gap-2 text-sm font-semibold">' +
+          '<i data-lucide="sliders-horizontal" class="h-4 w-4 text-primary"></i>Preferences' +
+        '</h2>' +
+        '<div class="grid gap-4 sm:grid-cols-2">' +
+          '<div>' +
+            '<label class="label" for="setDateFormat">Date format</label>' +
+            '<select id="setDateFormat" class="input">' + dateOptions + '</select>' +
+          '</div>' +
+          '<div>' +
+            '<label class="label" for="setCurrency">Currency</label>' +
+            '<select id="setCurrency" class="input">' + currencyOptions + '</select>' +
+          '</div>' +
+        '</div>' +
+        '<p class="mt-3 text-xs text-muted">Preview: ' + esc(formatDate(todayLocal())) + ' · ' + esc(formatMoney(1499)) + '</p>' +
+      '</section>' +
+
+      '<section class="card p-5">' +
+        '<h2 class="mb-2 flex items-center gap-2 text-sm font-semibold">' +
+          '<i data-lucide="bell" class="h-4 w-4 text-primary"></i>Notifications' +
+        '</h2>' +
+        '<p class="text-sm leading-relaxed text-muted">' +
+          'Browser notifications can alert you about warranties expiring soon. They only work while this tab is open — ' +
+          'no reminder can be delivered once the browser is closed.' +
+        '</p>' +
+        '<div class="mt-4 flex flex-wrap items-center gap-2">' +
+          (notificationsSupported
+            ? '<button type="button" data-action="enable-notifications" class="btn-ghost btn-sm" ' +
+                (permission === 'granted' ? 'disabled' : '') + '>' +
+                '<i data-lucide="bell" class="h-3.5 w-3.5"></i><span>' +
+                (permission === 'granted' ? 'Notifications enabled' : 'Enable browser notifications') +
+                '</span></button>' +
+              (permission === 'granted'
+                ? '<button type="button" data-action="notify-now" class="btn-ghost btn-sm">' +
+                    '<i data-lucide="send" class="h-3.5 w-3.5"></i><span>Test notification</span></button>'
+                : '') +
+              (permission === 'denied'
+                ? '<span class="chip bg-danger/10 text-danger border border-danger/25">Blocked in browser settings</span>'
+                : '')
+            : '<span class="chip bg-white/5 text-muted border border-white/10">Not supported in this browser</span>') +
+        '</div>' +
+      '</section>' +
+
+      '<section class="card p-5">' +
+        '<h2 class="mb-4 flex items-center gap-2 text-sm font-semibold">' +
+          '<i data-lucide="hard-drive" class="h-4 w-4 text-primary"></i>Storage' +
+        '</h2>' +
+        '<div class="flex items-center justify-between gap-3 text-sm">' +
+          '<span class="text-muted">Used by ProofPocket</span>' +
+          '<span class="font-semibold tabular-nums">' + esc(formatBytes(info.bytes)) + ' / ~' + esc(formatBytes(info.limit)) + '</span>' +
+        '</div>' +
+        '<div class="mt-2 h-2 overflow-hidden rounded-full bg-white/5">' +
+          '<div class="h-full ' + (info.pct > 85 ? 'bg-danger' : info.pct > 60 ? 'bg-warning' : 'bg-primary') + '" ' +
+               'style="width:' + Math.max(2, info.pct).toFixed(1) + '%"></div>' +
+        '</div>' +
+        '<p class="mt-3 text-xs text-muted">' +
+          state.products.length + ' product' + (state.products.length === 1 ? '' : 's') + ' stored locally. ' +
+          'Receipt attachments are base64-encoded and count towards browser storage limits (typically ~5 MB).' +
+        '</p>' +
+      '</section>' +
+
+      '<section class="card p-5">' +
+        '<h2 class="mb-4 flex items-center gap-2 text-sm font-semibold">' +
+          '<i data-lucide="database" class="h-4 w-4 text-primary"></i>Data management' +
+        '</h2>' +
+        '<div class="flex flex-col gap-2 sm:flex-row sm:flex-wrap">' +
+          '<button type="button" data-action="load-samples" class="btn-ghost btn-sm">' +
+            '<i data-lucide="sparkles" class="h-3.5 w-3.5"></i><span>Load sample data</span></button>' +
+          '<button type="button" data-action="remove-samples" class="btn-ghost btn-sm"' +
+            (hasSamples() ? '' : ' disabled') + '>' +
+            '<i data-lucide="eraser" class="h-3.5 w-3.5"></i><span>Remove sample data</span></button>' +
+          '<button type="button" data-action="export-ics" class="btn-ghost btn-sm">' +
+            '<i data-lucide="calendar-plus" class="h-3.5 w-3.5"></i><span>Export expirations (.ics)</span></button>' +
+          '<button type="button" data-action="clear-data" class="btn-danger btn-sm">' +
+            '<i data-lucide="trash-2" class="h-3.5 w-3.5"></i><span>Clear all application data</span></button>' +
+        '</div>' +
+      '</section>' +
+
+      '<section class="card p-5">' +
+        '<h2 class="mb-2 flex items-center gap-2 text-sm font-semibold">' +
+          '<i data-lucide="shield-check" class="h-4 w-4 text-primary"></i>About ProofPocket' +
+        '</h2>' +
+        '<p class="text-sm leading-relaxed text-muted">' +
+          'ProofPocket is a private, offline-first warranty and receipt manager. ' +
+          'Every product, receipt attachment and preference is stored in your browser\'s local storage on this device. ' +
+          'There is no account, no server, no analytics and no personal information collected or transmitted.' +
+        '</p>' +
+        '<p class="mt-3 text-sm leading-relaxed text-muted">' +
+          'Because data lives in this browser, clearing site data, using private browsing, or switching devices will ' +
+          'remove or hide your records. Keep a copy of important receipts elsewhere as well.' +
+        '</p>' +
+        '<p class="mt-3 text-xs text-muted">Version 1.2 · Built with HTML, Tailwind CSS and vanilla JavaScript.</p>' +
+      '</section>' +
+
+    '</div>';
+  }
+
+  /* =========================================================================
+     PRODUCT FORM MODAL
+     ========================================================================= */
+
+  function openProductForm(productId) {
+    const existing = productId
+      ? state.products.filter(function (p) { return p.id === productId; })[0]
+      : null;
+
+    if (productId && !existing) {
+      toast('That product could not be found.', 'error');
+      return;
+    }
+
+    let receipt = existing && existing.receipt ? Object.assign({}, existing.receipt) : null;
+
+    const p = existing || {
+      name: '', brand: '', category: 'Electronics', model: '', serial: '',
+      price: null, purchaseDate: toISODate(todayLocal()),
+      warrantyDuration: null, warrantyUnit: 'years', customExpiry: null,
+      store: '', orderId: '', notes: ''
+    };
+
+    const categoryOptions = CATEGORIES.map(function (c) {
+      return '<option value="' + esc(c.id) + '"' + (p.category === c.id ? ' selected' : '') + '>' +
+               esc(c.id) + '</option>';
+    }).join('');
+
+    const unitOptions = ['days', 'months', 'years'].map(function (u) {
+      return '<option value="' + u + '"' + (p.warrantyUnit === u ? ' selected' : '') + '>' +
+               u.charAt(0).toUpperCase() + u.slice(1) + '</option>';
+    }).join('');
+
+    const priceValue = (p.price === null || p.price === undefined) ? '' : String(p.price);
+    const durationValue = (p.warrantyDuration === null || p.warrantyDuration === undefined) ? '' : String(p.warrantyDuration);
+
+    const formHTML =
+      '<form id="productForm" novalidate class="flex min-h-0 flex-1 flex-col">' +
+
+        '<div class="flex shrink-0 items-start justify-between gap-3 border-b border-white/5 px-5 py-4">' +
+          '<div class="min-w-0">' +
+            '<h2 class="text-base font-semibold">' + (existing ? 'Edit product' : 'Add product') + '</h2>' +
+            '<p class="mt-0.5 text-xs text-muted">Warranty expiry is calculated automatically.</p>' +
+          '</div>' +
+          '<button type="button" data-close aria-label="Close dialog" ' +
+            'class="shrink-0 rounded-lg p-1.5 text-muted transition hover:bg-white/10 hover:text-ink">' +
+            '<i data-lucide="x" class="h-4 w-4"></i>' +
+          '</button>' +
+        '</div>' +
+
+        '<div class="min-h-0 flex-1 overflow-y-auto px-5 py-4">' +
+          '<div class="grid gap-4 sm:grid-cols-2">' +
+
+            '<div class="sm:col-span-2">' +
+              '<label class="label" for="pf-name">Product name <span class="text-danger">*</span></label>' +
+              '<input id="pf-name" name="name" type="text" class="input" required autocomplete="off" ' +
+                'placeholder="e.g. Sony WH-1000XM5 Headphones" value="' + esc(p.name) + '" />' +
+              '<p class="mt-1 hidden text-xs text-danger" data-error="name"></p>' +
+            '</div>' +
+
+            '<div>' +
+              '<label class="label" for="pf-brand">Brand</label>' +
+              '<input id="pf-brand" name="brand" type="text" class="input" autocomplete="off" ' +
+                'placeholder="e.g. Sony" value="' + esc(p.brand) + '" />' +
+            '</div>' +
+
+            '<div>' +
+              '<label class="label" for="pf-category">Category</label>' +
+              '<select id="pf-category" name="category" class="input">' + categoryOptions + '</select>' +
+            '</div>' +
+
+            '<div>' +
+              '<label class="label" for="pf-model">Model number</label>' +
+              '<input id="pf-model" name="model" type="text" class="input" autocomplete="off" ' +
+                'placeholder="e.g. WH1000XM5/B" value="' + esc(p.model) + '" />' +
+            '</div>' +
+
+            '<div>' +
+              '<label class="label" for="pf-serial">Serial number <span class="text-muted">(optional)</span></label>' +
+              '<input id="pf-serial" name="serial" type="text" class="input" autocomplete="off" ' +
+                'placeholder="e.g. S01-4829103" value="' + esc(p.serial) + '" />' +
+            '</div>' +
+
+            '<div>' +
+              '<label class="label" for="pf-price">Purchase price (' + esc(state.settings.currency) + ')</label>' +
+              '<input id="pf-price" name="price" type="number" min="0" step="0.01" class="input" ' +
+                'placeholder="0.00" value="' + esc(priceValue) + '" />' +
+              '<p class="mt-1 hidden text-xs text-danger" data-error="price"></p>' +
+            '</div>' +
+
+            '<div>' +
+              '<label class="label" for="pf-purchaseDate">Purchase date <span class="text-danger">*</span></label>' +
+              '<input id="pf-purchaseDate" name="purchaseDate" type="date" class="input" required ' +
+                'value="' + esc(p.purchaseDate || '') + '" />' +
+              '<p class="mt-1 hidden text-xs text-danger" data-error="purchaseDate"></p>' +
+            '</div>' +
+
+            '<div>' +
+              '<label class="label" for="pf-warrantyDuration">Warranty duration</label>' +
+              '<input id="pf-warrantyDuration" name="warrantyDuration" type="number" min="0" step="1" class="input" ' +
+                'placeholder="e.g. 2" value="' + esc(durationValue) + '" />' +
+              '<p class="mt-1 hidden text-xs text-danger" data-error="warrantyDuration"></p>' +
+            '</div>' +
+
+            '<div>' +
+              '<label class="label" for="pf-warrantyUnit">Warranty unit</label>' +
+              '<select id="pf-warrantyUnit" name="warrantyUnit" class="input">' + unitOptions + '</select>' +
+            '</div>' +
+
+            '<div class="sm:col-span-2">' +
+              '<label class="label" for="pf-customExpiry">Custom warranty expiry date <span class="text-muted">(optional — overrides the calculation)</span></label>' +
+              '<input id="pf-customExpiry" name="customExpiry" type="date" class="input" ' +
+                'value="' + esc(p.customExpiry || '') + '" />' +
+              '<p class="mt-1 hidden text-xs text-danger" data-error="customExpiry"></p>' +
+              '<p id="pf-expiryPreview" class="mt-2 text-xs text-muted"></p>' +
+            '</div>' +
+
+            '<div>' +
+              '<label class="label" for="pf-store">Store / seller</label>' +
+              '<input id="pf-store" name="store" type="text" class="input" autocomplete="off" ' +
+                'placeholder="e.g. Amazon India" value="' + esc(p.store) + '" />' +
+            '</div>' +
+
+            '<div>' +
+              '<label class="label" for="pf-orderId">Store order ID</label>' +
+              '<input id="pf-orderId" name="orderId" type="text" class="input" autocomplete="off" ' +
+                'placeholder="e.g. 403-1234567-8901234" value="' + esc(p.orderId) + '" />' +
+            '</div>' +
+
+            '<div class="sm:col-span-2">' +
+              '<label class="label" for="pf-notes">Notes</label>' +
+              '<textarea id="pf-notes" name="notes" rows="3" class="input resize-y" ' +
+                'placeholder="Anything worth remembering…">' + esc(p.notes) + '</textarea>' +
+            '</div>' +
+
+            '<div class="sm:col-span-2">' +
+              '<label class="label" for="pf-receipt">Receipt or invoice attachment</label>' +
+              '<div id="receiptCurrent" class="mb-2"></div>' +
+              '<input id="pf-receipt" name="receipt" type="file" accept="image/*,application/pdf" ' +
+                'class="block w-full cursor-pointer rounded-xl border border-white/10 bg-surface text-sm text-muted file:mr-3 file:cursor-pointer file:rounded-lg file:border-0 file:bg-primary/20 file:px-3 file:py-2 file:text-xs file:font-semibold file:text-primary hover:file:bg-primary/30" />' +
+              '<p class="mt-1.5 text-xs text-muted">Images or PDF · max 1.5 MB. Stored locally on this device only.</p>' +
+              '<p class="mt-1 hidden text-xs text-danger" data-error="receipt"></p>' +
+            '</div>' +
+
+          '</div>' +
+        '</div>' +
+
+        '<div class="flex shrink-0 flex-col-reverse gap-2 border-t border-white/5 px-5 py-4 sm:flex-row sm:justify-end">' +
+          '<button type="button" class="btn-ghost" data-close>Cancel</button>' +
+          '<button type="submit" class="btn-primary">' +
+            '<i data-lucide="' + (existing ? 'save' : 'plus') + '" class="h-4 w-4"></i>' +
+            '<span>' + (existing ? 'Save changes' : 'Add product') + '</span>' +
+          '</button>' +
+        '</div>' +
+
+      '</form>';
+
+    showModal(formHTML, { size: 'max-w-2xl' });
+
+    const form = document.getElementById('productForm');
+    if (!form) return;
+
+    const receiptCurrent = document.getElementById('receiptCurrent');
+
+    function renderReceiptChip() {
+      if (!receiptCurrent) return;
+      if (!receipt) {
+        receiptCurrent.innerHTML = '';
+        return;
+      }
+      const isImage = /^image\//.test(receipt.type || '');
+      receiptCurrent.innerHTML =
+        '<div class="flex items-center gap-2 rounded-xl border border-white/10 bg-surface px-3 py-2">' +
+          '<i data-lucide="' + (isImage ? 'image' : 'file-text') + '" class="h-4 w-4 shrink-0 text-primary"></i>' +
+          '<span class="min-w-0 flex-1 truncate text-xs">' + esc(receipt.name) + ' · ' + esc(formatBytes(receipt.size)) + '</span>' +
+          '<button type="button" id="removeReceipt" class="shrink-0 rounded-md p-1 text-muted transition hover:bg-white/10 hover:text-danger" ' +
+            'aria-label="Remove attachment"><i data-lucide="x" class="h-3.5 w-3.5"></i></button>' +
+        '</div>';
+      refreshIcons();
+      const removeBtn = document.getElementById('removeReceipt');
+      if (removeBtn) {
+        removeBtn.addEventListener('click', function () {
+          receipt = null;
+          const input = document.getElementById('pf-receipt');
+          if (input) input.value = '';
+          renderReceiptChip();
+        });
+      }
+    }
+    renderReceiptChip();
+
+    function updateExpiryPreview() {
+      const preview = document.getElementById('pf-expiryPreview');
+      if (!preview) return;
+      const draft = readFormDraft();
+      const expiry = computeExpiryDate({
+        purchaseDate: draft.purchaseDate,
+        warrantyDuration: draft.warrantyDuration,
+        warrantyUnit: draft.warrantyUnit,
+        customExpiry: draft.customExpiry
+      });
+      if (!expiry) {
+        preview.textContent = draft.customExpiry
+          ? 'Custom expiry date set.'
+          : 'No warranty period set — this product will show as “No Warranty”.';
+        preview.className = 'mt-2 text-xs text-muted';
+        return;
+      }
+      const days = daysBetween(todayLocal(), expiry);
+      let suffix;
+      if (days < 0) suffix = 'already expired';
+      else if (days === 0) suffix = 'expires today';
+      else suffix = pluralDays(days) + ' remaining';
+      preview.textContent = 'Calculated expiry: ' + formatDate(expiry) + ' (' + suffix + ')';
+      preview.className = 'mt-2 text-xs ' + (days < 0 ? 'text-danger' : days <= 30 ? 'text-warning' : 'text-success');
+    }
+
+    function readFormDraft() {
+      return {
+        name: (form.querySelector('#pf-name') || {}).value || '',
+        brand: (form.querySelector('#pf-brand') || {}).value || '',
+        category: (form.querySelector('#pf-category') || {}).value || 'Other',
+        model: (form.querySelector('#pf-model') || {}).value || '',
+        serial: (form.querySelector('#pf-serial') || {}).value || '',
+        price: (form.querySelector('#pf-price') || {}).value || '',
+        purchaseDate: (form.querySelector('#pf-purchaseDate') || {}).value || '',
+        warrantyDuration: (form.querySelector('#pf-warrantyDuration') || {}).value || '',
+        warrantyUnit: (form.querySelector('#pf-warrantyUnit') || {}).value || 'years',
+        customExpiry: (form.querySelector('#pf-customExpiry') || {}).value || '',
+        store: (form.querySelector('#pf-store') || {}).value || '',
+        orderId: (form.querySelector('#pf-orderId') || {}).value || '',
+        notes: (form.querySelector('#pf-notes') || {}).value || ''
+      };
+    }
+
+    ['pf-purchaseDate', 'pf-warrantyDuration', 'pf-warrantyUnit', 'pf-customExpiry'].forEach(function (id) {
+      const el = document.getElementById(id);
+      if (el) {
+        el.addEventListener('input', updateExpiryPreview);
+        el.addEventListener('change', updateExpiryPreview);
+      }
+    });
+    updateExpiryPreview();
+
+    const fileInput = document.getElementById('pf-receipt');
+    if (fileInput) {
+      fileInput.addEventListener('change', function () {
+        const file = fileInput.files && fileInput.files[0];
+        if (!file) return;
+        clearError('receipt');
+
+        if (file.size > MAX_RECEIPT_BYTES) {
+          showError('receipt', 'File is too large. Maximum size is 1.5 MB.');
+          fileInput.value = '';
+          return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = function () {
+          receipt = {
+            name: file.name,
+            type: file.type || 'application/octet-stream',
+            size: file.size,
+            dataUrl: String(reader.result)
+          };
+          renderReceiptChip();
+        };
+        reader.onerror = function () {
+          showError('receipt', 'That file could not be read.');
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+
+    function showError(field, message) {
+      const errorEl = form.querySelector('[data-error="' + field + '"]');
+      if (errorEl) {
+        errorEl.textContent = message;
+        errorEl.classList.remove('hidden');
+      }
+      const input = form.querySelector('[name="' + field + '"]');
+      if (input) {
+        input.classList.add('border-danger/60');
+        input.setAttribute('aria-invalid', 'true');
+      }
+    }
+
+    function clearError(field) {
+      const errorEl = form.querySelector('[data-error="' + field + '"]');
+      if (errorEl) {
+        errorEl.textContent = '';
+        errorEl.classList.add('hidden');
+      }
+      const input = form.querySelector('[name="' + field + '"]');
+      if (input) {
+        input.classList.remove('border-danger/60');
+        input.removeAttribute('aria-invalid');
+      }
+    }
+
+    function clearAllErrors() {
+      ['name', 'purchaseDate', 'price', 'warrantyDuration', 'customExpiry', 'receipt'].forEach(clearError);
+    }
+
+    form.addEventListener('submit', function (event) {
+      event.preventDefault();
+      clearAllErrors();
+
+      const draft = readFormDraft();
+      let firstInvalid = null;
+
+      if (!draft.name.trim()) {
+        showError('name', 'Product name is required.');
+        firstInvalid = firstInvalid || 'name';
+      }
+
+      if (!draft.purchaseDate) {
+        showError('purchaseDate', 'Purchase date is required.');
+        firstInvalid = firstInvalid || 'purchaseDate';
+      } else if (!parseISODate(draft.purchaseDate)) {
+        showError('purchaseDate', 'Enter a valid purchase date.');
+        firstInvalid = firstInvalid || 'purchaseDate';
+      }
+
+      if (draft.price !== '') {
+        const price = Number(draft.price);
+        if (!isFinite(price) || price < 0) {
+          showError('price', 'Enter a valid price (0 or more).');
+          firstInvalid = firstInvalid || 'price';
+        }
+      }
+
+      if (draft.warrantyDuration !== '') {
+        const duration = Number(draft.warrantyDuration);
+        if (!isFinite(duration) || duration < 0) {
+          showError('warrantyDuration', 'Enter a valid duration (0 or more).');
+          firstInvalid = firstInvalid || 'warrantyDuration';
+        }
+      }
+
+      if (draft.customExpiry) {
+        const custom = parseISODate(draft.customExpiry);
+        if (!custom) {
+          showError('customExpiry', 'Enter a valid expiry date.');
+          firstInvalid = firstInvalid || 'customExpiry';
+        } else {
+          const purchase = parseISODate(draft.purchaseDate);
+          if (purchase && custom < purchase) {
+            showError('customExpiry', 'Expiry date cannot be before the purchase date.');
+            firstInvalid = firstInvalid || 'customExpiry';
+          }
+        }
+      }
+
+      if (firstInvalid) {
+        const el = form.querySelector('[name="' + firstInvalid + '"]');
+        if (el) {
+          try { el.focus(); el.scrollIntoView({ block: 'center', behavior: 'smooth' }); } catch (e) {}
+        }
+        toast('Please fix the highlighted fields.', 'error');
+        return;
+      }
+
+      const now = new Date().toISOString();
+      const record = {
+        id: existing ? existing.id : uid('prod'),
+        name: draft.name.trim(),
+        brand: draft.brand.trim(),
+        category: draft.category,
+        model: draft.model.trim(),
+        serial: draft.serial.trim(),
+        price: draft.price === '' ? null : Number(draft.price),
+        purchaseDate: draft.purchaseDate,
+        warrantyDuration: draft.warrantyDuration === '' ? null : Number(draft.warrantyDuration),
+        warrantyUnit: draft.warrantyUnit,
+        customExpiry: draft.customExpiry || null,
+        store: draft.store.trim(),
+        orderId: draft.orderId.trim(),
+        notes: draft.notes.trim(),
+        receipt: receipt,
+        createdAt: existing ? existing.createdAt : now,
+        updatedAt: now,
+        isSample: existing ? !!existing.isSample : false
+      };
+
+      if (existing) {
+        const index = state.products.findIndex(function (item) { return item.id === existing.id; });
+        if (index >= 0) state.products[index] = record;
+      } else {
+        state.products.push(record);
+      }
+
+      const saved = saveProducts();
+      closeModal();
+
+      if (saved) {
+        toast(existing ? 'Product updated.' : 'Product added.', 'success');
+      }
+      renderView();
+    });
+  }
+
+  /* =========================================================================
+     PRODUCT DETAIL MODAL
+     ========================================================================= */
+
+  function openProductDetail(productId) {
+    const product = state.products.filter(function (p) { return p.id === productId; })[0];
+    if (!product) {
+      toast('That product could not be found.', 'error');
+      return;
+    }
+
+    const st = getStatus(product);
+    const cat = categoryMeta(product.category);
+
+    const rows = [
+      ['Brand', product.brand || '—'],
+      ['Category', product.category],
+      ['Model number', product.model || '—'],
+      ['Serial number', product.serial || '—'],
+      ['Purchase price', formatMoney(product.price)],
+      ['Purchase date', formatDate(product.purchaseDate)],
+      ['Warranty', product.warrantyDuration
+        ? product.warrantyDuration + ' ' + product.warrantyUnit
+        : (product.customExpiry ? 'Custom expiry' : '—')],
+      ['Expiry date', st.expiryISO ? formatDate(st.expiryISO) : '—'],
+      ['Store / seller', product.store || '—'],
+      ['Order ID', product.orderId || '—'],
+      ['Added', formatDate(new Date(product.createdAt))]
+    ];
+
+    let daysLabel;
+    if (st.days === null) daysLabel = 'No warranty information';
+    else if (st.days < 0) daysLabel = 'Expired ' + pluralDays(st.days) + ' ago';
+    else if (st.days === 0) daysLabel = 'Expires today';
+    else daysLabel = pluralDays(st.days) + ' remaining';
+
+    let receiptHTML = '';
+    if (product.receipt) {
+      const isImage = /^image\//.test(product.receipt.type || '');
+      receiptHTML =
+        '<div class="mt-1 rounded-xl border border-white/10 bg-surface p-3">' +
+          (isImage
+            ? '<img src="' + esc(product.receipt.dataUrl) + '" alt="Receipt for ' + esc(product.name) + '" ' +
+                'class="mb-3 max-h-64 w-full rounded-lg object-contain bg-black/30" />'
+            : '<div class="mb-3 flex items-center gap-2 text-sm text-muted">' +
+                '<i data-lucide="file-text" class="h-4 w-4 text-primary"></i>' +
+                '<span class="truncate">' + esc(product.receipt.name) + '</span>' +
+              '</div>') +
+          '<div class="flex flex-wrap items-center gap-2">' +
+            '<a href="' + esc(product.receipt.dataUrl) + '" download="' + esc(product.receipt.name) + '" ' +
+              'class="btn-ghost btn-sm">' +
+              '<i data-lucide="download" class="h-3.5 w-3.5"></i><span>Download</span></a>' +
+            '<a href="' + esc(product.receipt.dataUrl) + '" target="_blank" rel="noopener noreferrer" ' +
+              'class="btn-ghost btn-sm">' +
+              '<i data-lucide="external-link" class="h-3.5 w-3.5"></i><span>Open</span></a>' +
+            '<span class="text-xs text-muted">' + esc(formatBytes(product.receipt.size)) + '</span>' +
+          '</div>' +
+        '</div>';
+    } else {
+      receiptHTML = '<p class="text-sm text-muted">No receipt attached.</p>';
+    }
+
+    const body =
+      '<div class="flex shrink-0 items-start justify-between gap-3 border-b border-white/5 px-5 py-4">' +
+        '<div class="flex min-w-0 items-start gap-3">' +
+          '<span class="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-primary/15 text-primary">' +
+            '<i data-lucide="' + esc(cat.icon) + '" class="h-5 w-5"></i>' +
+          '</span>' +
+          '<div class="min-w-0">' +
+            '<h2 class="truncate text-base font-semibold">' + esc(product.name) + '</h2>' +
+            '<p class="mt-0.5 truncate text-xs text-muted">' + esc(product.brand || product.category) + '</p>' +
+          '</div>' +
+        '</div>' +
+        '<button type="button" data-close aria-label="Close dialog" ' +
+          'class="shrink-0 rounded-lg p-1.5 text-muted transition hover:bg-white/10 hover:text-ink">' +
+          '<i data-lucide="x" class="h-4 w-4"></i>' +
+        '</button>' +
+      '</div>' +
+
+      '<div class="min-h-0 flex-1 overflow-y-auto px-5 py-4">' +
+        '<div class="flex flex-wrap items-center gap-2">' +
+          statusBadgeHTML(st) +
+          '<span class="chip bg-white/5 text-muted border border-white/10">' + esc(daysLabel) + '</span>' +
+        '</div>' +
+
+        (st.expiry ? progressHTML(st, product) : '') +
+
+        '<dl class="mt-5 grid grid-cols-1 gap-x-4 gap-y-3 sm:grid-cols-2">' +
+          rows.map(function (row) {
+            return '<div class="min-w-0">' +
+                     '<dt class="text-[11px] font-medium uppercase tracking-wide text-muted">' + esc(row[0]) + '</dt>' +
+                     '<dd class="mt-0.5 break-words text-sm">' + esc(row[1]) + '</dd>' +
+                   '</div>';
+          }).join('') +
+        '</dl>' +
+
+        (product.notes
+          ? '<div class="mt-5">' +
+              '<p class="text-[11px] font-medium uppercase tracking-wide text-muted">Notes</p>' +
+              '<p class="mt-1 whitespace-pre-wrap break-words rounded-xl border border-white/10 bg-surface px-3 py-2.5 text-sm leading-relaxed">' +
+                esc(product.notes) +
+              '</p>' +
+            '</div>'
+          : '') +
+
+        '<div class="mt-5">' +
+          '<p class="mb-2 text-[11px] font-medium uppercase tracking-wide text-muted">Receipt / invoice</p>' +
+          receiptHTML +
+        '</div>' +
+      '</div>' +
+
+      '<div class="flex shrink-0 flex-col-reverse gap-2 border-t border-white/5 px-5 py-4 sm:flex-row sm:justify-between">' +
+        '<button type="button" data-action="delete-product" data-id="' + esc(product.id) + '" class="btn-danger">' +
+          '<i data-lucide="trash-2" class="h-4 w-4"></i><span>Delete</span>' +
+        '</button>' +
+        '<div class="flex flex-col gap-2 sm:flex-row">' +
+          '<button type="button" class="btn-ghost" data-close>Close</button>' +
+          '<button type="button" data-action="edit-product" data-id="' + esc(product.id) + '" class="btn-primary">' +
+            '<i data-lucide="pencil" class="h-4 w-4"></i><span>Edit</span>' +
+          '</button>' +
+        '</div>' +
+      '</div>';
+
+    showModal(body, { size: 'max-w-xl' });
+  }
+
+  /* =========================================================================
+     DELETE FLOW
+     ========================================================================= */
+
+  function deleteProduct(productId) {
+    const product = state.products.filter(function (p) { return p.id === productId; })[0];
+    if (!product) {
+      toast('That product could not be found.', 'error');
+      return;
+    }
+
+    confirmDialog({
+      title: 'Delete “' + product.name + '”?',
+      message: 'This permanently removes the product, its warranty details and any attached receipt from this device. This cannot be undone.',
+      confirmText: 'Delete product',
+      danger: true
+    }).then(function (confirmed) {
+      if (!confirmed) return;
+      const index = state.products.findIndex(function (p) { return p.id === productId; });
+      if (index < 0) return;
+      state.products.splice(index, 1);
+      saveProducts();
+      closeModal();
+      toast('Product deleted.', 'success');
+      renderView();
+    });
+  }
+
+  /* =========================================================================
+     SAMPLE DATA
+     ========================================================================= */
+
+  function buildSampleProducts() {
+    const today = todayLocal();
+
+    function daysAgo(n) { return toISODate(addDaysClamped(today, -n)); }
+    function daysAhead(n) { return toISODate(addDaysClamped(today, n)); }
+
+    function sampleReceipt(label) {
+      const svg =
+        '<svg xmlns="http://www.w3.org/2000/svg" width="480" height="620">' +
+          '<rect width="100%" height="100%" fill="#ffffff"/>' +
+          '<text x="40" y="70" font-family="monospace" font-size="22" font-weight="bold" fill="#111">PROOFPOCKET</text>' +
+          '<text x="40" y="96" font-family="monospace" font-size="13" fill="#666">SAMPLE RECEIPT — DEMO DATA</text>' +
+          '<line x1="40" y1="112" x2="440" y2="112" stroke="#ddd" stroke-width="2"/>' +
+          '<text x="40" y="152" font-family="monospace" font-size="15" fill="#111">' + label.replace(/&/g, '&amp;').replace(/</g, '&lt;') + '</text>' +
+          '<text x="40" y="184" font-family="monospace" font-size="13" fill="#555">Order: SAMPLE-0001</text>' +
+          '<text x="40" y="208" font-family="monospace" font-size="13" fill="#555">This file is generated demo content.</text>' +
+          '<line x1="40" y1="240" x2="440" y2="240" stroke="#eee" stroke-width="1"/>' +
+          '<text x="40" y="280" font-family="monospace" font-size="13" fill="#333">TOTAL ................ PAID</text>' +
+          '<text x="40" y="580" font-family="monospace" font-size="11" fill="#999">No real purchase information is stored.</text>' +
+        '</svg>';
+      return {
+        name: 'sample-receipt.svg',
+        type: 'image/svg+xml',
+        size: svg.length,
+        dataUrl: 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg)
+      };
+    }
+
+    const now = Date.now();
+    const stamp = function (offsetMinutes) {
+      return new Date(now - offsetMinutes * 60000).toISOString();
+    };
+
+    return [
+      {
+        name: 'Sony WH-1000XM5 Headphones',
+        brand: 'Sony', category: 'Electronics', model: 'WH1000XM5/B', serial: 'SN-2291843',
+        price: 26990, purchaseDate: daysAgo(120), warrantyDuration: 2, warrantyUnit: 'years',
+        customExpiry: null, store: 'Amazon India', orderId: '403-1234567-8901234',
+        notes: 'Noise-cancelling headphones. Carry case included.',
+        receipt: sampleReceipt('Sony WH-1000XM5 Headphones')
+      },
+      {
+        name: 'Samsung Galaxy S24 Ultra',
+        brand: 'Samsung', category: 'Mobile phones', model: 'SM-S928B', serial: 'R58T1092XYZ',
+        price: 129999, purchaseDate: daysAgo(700), warrantyDuration: 24, warrantyUnit: 'months',
+        customExpiry: null, store: 'Samsung Store', orderId: 'SM-8891223',
+        notes: 'Extended warranty not purchased.', receipt: null
+      },
+      {
+        name: 'LG 1.5 Ton Split Air Conditioner',
+        brand: 'LG', category: 'Appliances', model: 'PS-Q19YNZE', serial: 'LGAC-77120',
+        price: 42990, purchaseDate: daysAgo(400), warrantyDuration: 3, warrantyUnit: 'years',
+        customExpiry: null, store: 'Croma', orderId: 'CRM-55210',
+        notes: 'Compressor warranty 10 years — check manual.', receipt: null
+      },
+      {
+        name: 'Dell XPS 15 Laptop',
+        brand: 'Dell', category: 'Computers and accessories', model: 'XPS9530-7189', serial: 'DXPS-334812',
+        price: 189990, purchaseDate: daysAgo(730), warrantyDuration: 2, warrantyUnit: 'years',
+        customExpiry: daysAhead(0), store: 'Dell India', orderId: 'DL-90211',
+        notes: 'Warranty ends today — decide on extension.', receipt: null
+      },
+      {
+        name: 'Apple Watch Series 9',
+        brand: 'Apple', category: 'Electronics', model: 'MR9A3HN/A', serial: 'AW9-882113',
+        price: 41900, purchaseDate: daysAgo(1000), warrantyDuration: 2, warrantyUnit: 'years',
+        customExpiry: null, store: 'Apple Store', orderId: 'APL-44120',
+        notes: '', receipt: null
+      },
+      {
+        name: 'IKEA Markus Office Chair',
+        brand: 'IKEA', category: 'Furniture', model: '702.611.50', serial: '',
+        price: 14990, purchaseDate: daysAgo(500), warrantyDuration: 5, warrantyUnit: 'years',
+        customExpiry: null, store: 'IKEA Hyderabad', orderId: 'IKEA-7712',
+        notes: '10 year frame warranty per IKEA terms.', receipt: null
+      },
+      {
+        name: 'Nike Air Zoom Running Shoes',
+        brand: 'Nike', category: 'Clothing', model: 'DH5425-001', serial: '',
+        price: 8995, purchaseDate: daysAgo(60), warrantyDuration: null, warrantyUnit: 'months',
+        customExpiry: null, store: 'Nike.com', orderId: 'NK-2231',
+        notes: 'No formal warranty — return window closed.', receipt: null
+      },
+      {
+        name: 'Bosch Front Load Washing Machine',
+        brand: 'Bosch', category: 'Appliances', model: 'WAJ2416SIN', serial: 'BSH-990211',
+        price: 31990, purchaseDate: daysAgo(340), warrantyDuration: 2, warrantyUnit: 'years',
+        customExpiry: daysAhead(12), store: 'Reliance Digital', orderId: 'RD-55109',
+        notes: 'Service scheduled — filter cleaning pending.', receipt: null
+      },
+      {
+        name: 'Honda Activa 6G Scooter',
+        brand: 'Honda', category: 'Vehicles', model: 'Activa 6G STD', serial: 'ME4JF50C1KT012345',
+        price: 78500, purchaseDate: daysAgo(900), warrantyDuration: 5, warrantyUnit: 'years',
+        customExpiry: null, store: 'Honda Two Wheelers', orderId: 'HN-1102',
+        notes: 'Free servicing at 1st, 3rd and 5th service.', receipt: null
+      }
+    ].map(function (item, index) {
+      return normaliseProduct(Object.assign({}, item, {
+        id: 'sample_' + (index + 1) + '_' + Math.random().toString(36).slice(2, 8),
+        createdAt: stamp(index * 7 + 3),
+        updatedAt: stamp(index * 7 + 3),
+        isSample: true
+      }));
+    });
+  }
+
+  function loadSampleData() {
+    const fresh = buildSampleProducts();
+    state.products = state.products.concat(fresh);
+    if (saveProducts()) {
+      toast(fresh.length + ' sample products added.', 'success');
+    }
+    renderView();
+  }
+
+  function removeSampleData() {
+    const count = state.products.filter(function (p) { return p.isSample; }).length;
+    if (!count) {
+      toast('There is no sample data to remove.', 'info');
+      return;
+    }
+    confirmDialog({
+      title: 'Remove sample data?',
+      message: 'This removes the ' + count + ' demo product' + (count === 1 ? '' : 's') + ' you loaded. Your own records are not affected.',
+      confirmText: 'Remove samples',
+      danger: true
+    }).then(function (confirmed) {
+      if (!confirmed) return;
+      state.products = state.products.filter(function (p) { return !p.isSample; });
+      saveProducts();
+      toast('Sample data removed.', 'success');
+      renderView();
+    });
+  }
+
+  /* =========================================================================
+     NOTIFICATIONS
+     ========================================================================= */
+
+  function enableNotifications() {
+    if (!('Notification' in window)) {
+      toast('This browser does not support notifications.', 'error');
+      return;
+    }
+    if (Notification.permission === 'granted') {
+      state.settings.notifyEnabled = true;
+      saveSettings();
+      toast('Notifications are already enabled.', 'info');
+      return;
+    }
+    if (Notification.permission === 'denied') {
+      toast('Notifications are blocked. Update this site\'s permissions in your browser settings.', 'error', 6000);
+      return;
+    }
+
+    Notification.requestPermission().then(function (permission) {
+      if (permission === 'granted') {
+        state.settings.notifyEnabled = true;
+        saveSettings();
+        toast('Browser notifications enabled for this device.', 'success');
+      } else {
+        toast('Notification permission was not granted.', 'warning');
+      }
+      renderView();
+    }).catch(function () {
+      toast('Could not request notification permission.', 'error');
+    });
+  }
+
+  function notifyNow() {
+    if (!('Notification' in window) || Notification.permission !== 'granted') {
+      toast('Enable browser notifications first.', 'warning');
+      return;
+    }
+
+    const upcoming = state.products
+      .map(function (p) { return { product: p, status: getStatus(p) }; })
+      .filter(function (x) { return x.status.days !== null && x.status.days >= 0 && x.status.days <= 30; })
+      .sort(function (a, b) { return a.status.days - b.status.days; });
+
+    if (!upcoming.length) {
+      toast('Nothing expiring in the next 30 days. 🎉', 'success');
+      return;
+    }
+
+    const first = upcoming[0];
+    const body = upcoming.length === 1
+      ? first.product.name + ' expires in ' + pluralDays(first.status.days) + '.'
+      : first.product.name + ' expires in ' + pluralDays(first.status.days) +
+        ', and ' + (upcoming.length - 1) + ' more product' + (upcoming.length - 1 === 1 ? '' : 's') + ' expire within 30 days.';
+
+    try {
+      const notification = new Notification('ProofPocket — warranty reminder', {
+        body: body,
+        icon: 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 32 32%22%3E%3Crect width=%2232%22 height=%2232%22 rx=%228%22 fill=%22%238B5CF6%22/%3E%3C/svg%3E',
+        tag: 'proofpocket-expiry'
+      });
+      notification.onclick = function () {
+        window.focus();
+        notification.close();
+      };
+      toast('Notification sent.', 'success');
+    } catch (err) {
+      toast('Could not display the notification.', 'error');
+    }
+  }
+
+  /* =========================================================================
+     ICS EXPORT
+     ========================================================================= */
+
+  function icsEscape(text) {
+    return String(text)
+      .replace(/\\/g, '\\\\')
+      .replace(/;/g, '\\;')
+      .replace(/,/g, '\\,')
+      .replace(/\r?\n/g, '\\n');
+  }
+
+  function exportICS() {
+    const items = state.products
+      .map(function (p) { return { product: p, status: getStatus(p) }; })
+      .filter(function (x) { return !!x.status.expiryISO; })
+      .sort(function (a, b) { return a.status.expiryISO < b.status.expiryISO ? -1 : 1; });
+
+    if (!items.length) {
+      toast('Nothing to export — no warranty expiry dates yet.', 'warning');
+      return;
+    }
+
+    const dtstamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '');
+    const lines = [
+      'BEGIN:VCALENDAR',
+      'VERSION:2.0',
+      'PRODID:-//ProofPocket//Warranty Expiry//EN',
+      'CALSCALE:GREGORIAN',
+      'METHOD:PUBLISH',
+      'X-WR-CALNAME:ProofPocket Warranty Expiries'
+    ];
+
+    items.forEach(function (item) {
+      const product = item.product;
+      const expiry = parseISODate(item.status.expiryISO);
+      if (!expiry) return;
+      const nextDay = addDaysClamped(expiry, 1);
+      const startStr = item.status.expiryISO.replace(/-/g, '');
+      const endStr = toISODate(nextDay).replace(/-/g, '');
+
+      const description = [
+        product.brand ? 'Brand: ' + product.brand : '',
+        product.model ? 'Model: ' + product.model : '',
+        product.serial ? 'Serial: ' + product.serial : '',
+        product.store ? 'Store: ' + product.store : '',
+        'Added with ProofPocket'
+      ].filter(Boolean).join(' | ');
+
+      lines.push('BEGIN:VEVENT');
+      lines.push('UID:' + icsEscape(product.id) + '@proofpocket.local');
+      lines.push('DTSTAMP:' + dtstamp);
+      lines.push('DTSTART;VALUE=DATE:' + startStr);
+      lines.push('DTEND;VALUE=DATE:' + endStr);
+      lines.push('SUMMARY:' + icsEscape('Warranty expires: ' + product.name));
+      lines.push('DESCRIPTION:' + icsEscape(description));
+      lines.push('TRANSP:TRANSPARENT');
+      lines.push('END:VEVENT');
+    });
+
+    lines.push('END:VCALENDAR');
+
+    const blob = new Blob([lines.join('\r\n')], { type: 'text/calendar;charset=utf-8' });
+    const filename = 'proofpocket-warranty-expiry-' + toISODate(todayLocal()) + '.ics';
+
+    try {
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(function () { URL.revokeObjectURL(url); }, 1500);
+      toast('Exported ' + items.length + ' expiry date' + (items.length === 1 ? '' : 's') + ' to calendar.', 'success');
+    } catch (err) {
+      console.error('[ProofPocket] ICS export failed:', err);
+      toast('Could not create the calendar file.', 'error');
+    }
+  }
+
+  /* =========================================================================
+     CLEAR ALL DATA
+     ========================================================================= */
+
+  function clearAllData() {
+    confirmDialog({
+      title: 'Delete all application data?',
+      message: 'Every product, warranty record, receipt attachment and preference stored in this browser will be permanently deleted. This cannot be undone.',
+      confirmText: 'Delete everything',
+      danger: true,
+      requireText: 'DELETE'
+    }).then(function (confirmed) {
+      if (!confirmed) return;
+      try {
+        localStorage.removeItem(LS_PRODUCTS);
+        localStorage.removeItem(LS_SETTINGS);
+      } catch (err) {
+        console.warn('[ProofPocket] Could not clear storage:', err);
+      }
+      state.products = [];
+      state.settings = defaultSettings();
+      state.ui = {
+        search: '', category: 'all', status: 'all', sort: 'newest',
+        view: 'grid', page: 1, expiryRange: 'upcoming'
+      };
+      saveSettings();
+      document.body.classList.remove('sidebar-collapsed');
+      toast('All data cleared.', 'success');
+      renderView();
+    });
+  }
+
+  /* =========================================================================
+     GLOBAL EVENT HANDLING
+     ========================================================================= */
+
+  function handleAction(action, element) {
+    switch (action) {
+      case 'add-product':
+        openProductForm(null);
+        break;
+
+      case 'open-product': {
+        const id = element.getAttribute('data-id');
+        if (id) openProductDetail(id);
+        break;
+      }
+
+      case 'edit-product': {
+        const id = element.getAttribute('data-id');
+        if (id) openProductForm(id);
+        break;
+      }
+
+      case 'delete-product': {
+        const id = element.getAttribute('data-id');
+        if (id) deleteProduct(id);
+        break;
+      }
+
+      case 'set-view': {
+        const view = element.getAttribute('data-view');
+        if (view === 'grid' || view === 'list') {
+          state.ui.view = view;
+          state.settings.view = view;
+          saveSettings();
+          renderView();
+        }
+        break;
+      }
+
+      case 'page': {
+        const page = Number(element.getAttribute('data-page'));
+        if (isFinite(page) && page >= 1) {
+          state.ui.page = page;
+          renderProductsResults();
+          const results = document.getElementById('productsResults');
+          if (results) {
+            try { results.scrollIntoView({ block: 'start', behavior: 'smooth' }); } catch (e) {}
+          }
+        }
+        break;
+      }
+
+      case 'clear-filter': {
+        const filter = element.getAttribute('data-filter');
+        if (filter === 'search') state.ui.search = '';
+        else if (filter === 'category') state.ui.category = 'all';
+        else if (filter === 'status') state.ui.status = 'all';
+        state.ui.page = 1;
+        renderView();
+        break;
+      }
+
+      case 'clear-search': {
+        state.ui.search = '';
+        state.ui.page = 1;
+        const input = document.getElementById('productSearch');
+        if (input) {
+          input.value = '';
+          try { input.focus(); } catch (e) {}
+        }
+        renderProductsResults();
+        break;
+      }
+
+      case 'reset-filters':
+        state.ui.search = '';
+        state.ui.category = 'all';
+        state.ui.status = 'all';
+        state.ui.sort = 'newest';
+        state.ui.page = 1;
+        renderView();
+        break;
+
+      /* --- NEW: switch the Expirations range filter --- */
+      case 'expiry-range': {
+        const range = element.getAttribute('data-range');
+        const valid = EXPIRY_TABS.some(function (t) { return t.id === range; });
+        if (valid && range !== state.ui.expiryRange) {
+          state.ui.expiryRange = range;
+          renderView();
+        }
+        break;
+      }
+
+      case 'load-samples':
+        loadSampleData();
+        break;
+
+      case 'remove-samples':
+        removeSampleData();
+        break;
+
+      case 'enable-notifications':
+        enableNotifications();
+        break;
+
+      case 'notify-now':
+        notifyNow();
+        break;
+
+      case 'go-expirations':
+        location.hash = '#/expirations';
+        break;
+
+      case 'export-ics':
+        exportICS();
+        break;
+
+      case 'clear-data':
+        clearAllData();
+        break;
+
+      case 'toggle-sidebar': {
+        const collapsed = !document.body.classList.contains('sidebar-collapsed');
+        document.body.classList.toggle('sidebar-collapsed', collapsed);
+        state.settings.sidebarCollapsed = collapsed;
+        saveSettings();
+        break;
+      }
+
+      default:
+        break;
+    }
+  }
+
+  document.addEventListener('click', function (event) {
+    const actionEl = event.target.closest('[data-action]');
+    if (!actionEl) return;
+    event.preventDefault();
+    handleAction(actionEl.getAttribute('data-action'), actionEl);
+  });
+
+  document.addEventListener('keydown', function (event) {
+    if (event.key !== 'Enter' && event.key !== ' ') return;
+    const target = event.target;
+    if (!target || typeof target.closest !== 'function') return;
+    if (target.tagName === 'BUTTON' || target.tagName === 'A' || target.tagName === 'INPUT') return;
+
+    const card = target.closest('[data-action="open-product"]');
+    if (card) {
+      event.preventDefault();
+      const id = card.getAttribute('data-id');
+      if (id) openProductDetail(id);
+    }
+  });
+
+  document.addEventListener('change', function (event) {
+    const target = event.target;
+    if (!target) return;
+
+    switch (target.id) {
+      case 'filterCategory':
+        state.ui.category = target.value;
+        state.ui.page = 1;
+        renderProductsResults();
+        break;
+
+      case 'filterStatus':
+        state.ui.status = target.value;
+        state.ui.page = 1;
+        renderProductsResults();
+        break;
+
+      case 'sortBy':
+        state.ui.sort = target.value;
+        state.ui.page = 1;
+        renderProductsResults();
+        break;
+
+      case 'setDateFormat':
+        state.settings.dateFormat = target.value;
+        saveSettings();
+        toast('Date format updated.', 'success');
+        renderView();
+        break;
+
+      case 'setCurrency':
+        state.settings.currency = target.value;
+        saveSettings();
+        toast('Currency updated.', 'success');
+        renderView();
+        break;
+
+      default:
+        break;
+    }
+  });
+
+  /* Live search inside the Product Library (does not re-render the input itself) */
+  document.addEventListener('input', function (event) {
+    const target = event.target;
+    if (!target || target.id !== 'productSearch') return;
+    state.ui.search = target.value;
+    state.ui.page = 1;
+    renderProductsResults();
+  });
+
+  document.addEventListener('submit', function (event) {
+    if (event.target && event.target.id === 'quickSearchForm') {
+      event.preventDefault();
+      const input = document.getElementById('quickSearch');
+      state.ui.search = input ? input.value : '';
+      state.ui.page = 1;
+      if (state.route === 'products') {
+        renderProductsResults();
+      } else {
+        location.hash = '#/products';
+      }
+    }
+  });
+
+  document.addEventListener('keydown', function (event) {
+    if (event.key === 'Escape') {
+      if (document.getElementById('modalRoot') && document.getElementById('modalRoot').children.length) {
+        closeModal();
+      }
+      return;
+    }
+
+    const target = event.target;
+    const tag = target && target.tagName ? target.tagName.toLowerCase() : '';
+    const isTyping = tag === 'input' || tag === 'textarea' || tag === 'select' ||
+                     (target && target.isContentEditable);
+
+    if (isTyping) return;
+
+    if (event.key === '/') {
+      event.preventDefault();
+      if (state.route === 'products') {
+        const el = document.getElementById('productSearch');
+        if (el) { el.focus(); el.select(); }
+      } else {
+        location.hash = '#/products';
+        setTimeout(function () {
+          const el = document.getElementById('productSearch');
+          if (el) { el.focus(); el.select(); }
+        }, 90);
+      }
+      return;
+    }
+
+    if (event.key.toLowerCase() === 'n') {
+      event.preventDefault();
+      openProductForm(null);
+    }
+  });
+
+  window.addEventListener('hashchange', renderView);
+
+  window.addEventListener('focus', function () {
+    if (state.route === 'dashboard' || state.route === 'expirations') renderView();
+  });
+
+  /* =========================================================================
+     PWA
+     ========================================================================= */
+
+  function initPWA() {
+    try {
+      const manifest = {
+        name: 'ProofPocket — Warranty & Receipt Manager',
+        short_name: 'ProofPocket',
+        description: 'Track product warranties, receipts and expiry dates privately on your device.',
+        start_url: '.',
+        scope: '.',
+        display: 'standalone',
+        background_color: '#0B1020',
+        theme_color: '#0B1020',
+        orientation: 'portrait-primary',
+        icons: [{
+          src: 'data:image/svg+xml,' + encodeURIComponent(
+            '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">' +
+              '<rect width="512" height="512" rx="112" fill="#8B5CF6"/>' +
+              '<path d="M256 112l112 48v96c0 67.2-46.4 121.6-112 144-65.6-22.4-112-76.8-112-144v-96l112-48z" fill="#ffffff"/>' +
+              '<path d="M212 256l32 32 64-64" stroke="#8B5CF6" stroke-width="22" stroke-linecap="round" stroke-linejoin="round" fill="none"/>' +
+            '</svg>'
+          ),
+          sizes: '512x512',
+          type: 'image/svg+xml',
+          purpose: 'any maskable'
+        }]
+      };
+
+      const blob = new Blob([JSON.stringify(manifest)], { type: 'application/manifest+json' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('link');
+      link.rel = 'manifest';
+      link.href = url;
+      document.head.appendChild(link);
+    } catch (err) {
+      console.warn('[ProofPocket] PWA manifest unavailable:', err);
+    }
+
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function () {
+        navigator.serviceWorker.register('sw.js').catch(function () {
+          /* No service worker present — the app still works fully offline-capable via cache-less static files. */
+        });
+      });
+    }
+  }
+
+  /* =========================================================================
+     INITIAL LOAD
+     ========================================================================= */
+
+  function renderSkeleton() {
+    const view = document.getElementById('view');
+    if (!view) return;
+    let cards = '';
+    for (let i = 0; i < 5; i++) {
+      cards += '<div class="card p-4">' +
+                 '<div class="skeleton h-9 w-9 rounded-xl"></div>' +
+                 '<div class="skeleton mt-3 h-6 w-16 rounded"></div>' +
+                 '<div class="skeleton mt-2 h-3 w-24 rounded"></div>' +
+               '</div>';
+    }
+    let rows = '';
+    for (let i = 0; i < 4; i++) {
+      rows += '<div class="flex items-center gap-3 px-4 py-3">' +
+                '<div class="skeleton h-9 w-9 rounded-lg"></div>' +
+                '<div class="flex-1">' +
+                  '<div class="skeleton h-3 w-40 rounded"></div>' +
+                  '<div class="skeleton mt-2 h-3 w-24 rounded"></div>' +
+                '</div>' +
+              '</div>';
+    }
+    view.innerHTML =
+      '<div class="flex flex-col gap-5">' +
+        '<div class="skeleton h-7 w-48 rounded"></div>' +
+        '<div class="grid grid-cols-2 gap-3 lg:grid-cols-5 lg:gap-4">' + cards + '</div>' +
+        '<div class="card overflow-hidden"><div class="skeleton m-4 h-4 w-32 rounded"></div>' + rows + '</div>' +
+      '</div>';
+  }
+
+  function init() {
+    renderSkeleton();
+    refreshIcons();
+
+    loadSettings();
+    loadProducts();
+
+    document.body.classList.toggle('sidebar-collapsed', !!state.settings.sidebarCollapsed);
+    state.ui.view = state.settings.view;
+
+    setTimeout(function () {
+      if (!location.hash) {
+        location.replace('#/dashboard');
+      }
+      renderView();
+      initPWA();
+    }, 260);
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+
+})();
+</script>
+</body>
+</html>
